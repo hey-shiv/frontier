@@ -1,0 +1,627 @@
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { db } from "./database";
+import * as schema from "./database/schema";
+import { eq, and } from "drizzle-orm";
+import { COMPANIES_DATA } from "./data/companies";
+import { TRENDS_DATA } from "./data/trends";
+import {
+  generateProjectsWithAI,
+  generatePreviewsWithAI,
+  generateProjectDetailWithAI,
+} from "./data/openrouter";
+import { generateProjects } from "./data/mockGenerator";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+import {
+  GenerateInputSchema,
+  DetailInputSchema,
+  SaveProjectSchema,
+  IdParamSchema,
+} from "./schemas";
+import type {
+  GeneratePreviewsResponse,
+  GenerateDetailResponse,
+  SavedProject,
+  ApiError,
+} from "../shared/types";
+
+// ─── Env helpers ──────────────────────────────────────────────────────────────
+
+function loadEnvKey(key: string): string | undefined {
+  if (process.env[key]) return process.env[key];
+  for (const relPath of ["../../.env", ".env"]) {
+    try {
+      const content = readFileSync(resolve(process.cwd(), relPath), "utf-8");
+      const match = content.match(new RegExp(`^${key}=["']?([^"'\n]+)["']?`, "m"));
+      if (match?.[1]) return match[1].trim();
+    } catch {
+      // file missing — try next
+    }
+  }
+  return undefined;
+}
+
+const OPENROUTER_API_KEY = loadEnvKey("OPENROUTER_API_KEY");
+// Deliberately NOT logging the key value — just availability
+console.log(
+  "[Frontier] OpenRouter key:",
+  OPENROUTER_API_KEY ? "present" : "missing (will use mock)"
+);
+
+// ─── Safe JSON parse helper ───────────────────────────────────────────────────
+
+function safeParseJsonArray(value: unknown, fallback: string[] = []): string[] {
+  if (Array.isArray(value)) return value.map(String);
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.map(String) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+}
+
+// ─── App ──────────────────────────────────────────────────────────────────────
+
+const app = new Hono()
+  .basePath("api")
+  .use(cors({ origin: "*" }))
+
+  // ── Health ──────────────────────────────────────────────────────────────────
+  .get("/health", (c) => c.json({ status: "ok" }, 200))
+
+  // ── Companies ───────────────────────────────────────────────────────────────
+  .get("/companies", (c) => {
+    const search = c.req.query("search")?.trim() ?? "";
+    const focus = c.req.query("focus")?.trim() ?? "";
+
+    let filtered = COMPANIES_DATA;
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(
+        (co) =>
+          co.name.toLowerCase().includes(q) ||
+          co.tagline.toLowerCase().includes(q)
+      );
+    }
+    if (focus) {
+      const q = focus.toLowerCase();
+      filtered = filtered.filter((co) =>
+        co.focus.some((f) => f.toLowerCase().includes(q))
+      );
+    }
+    return c.json({ companies: filtered }, 200);
+  })
+
+  .get("/companies/:slug", (c) => {
+    const slug = c.req.param("slug");
+    const company = COMPANIES_DATA.find((co) => co.slug === slug);
+    if (!company) return c.json({ error: "Not found" } satisfies ApiError, 404);
+    return c.json({ company }, 200);
+  })
+
+  // ── Trends ──────────────────────────────────────────────────────────────────
+  .get("/trends", (c) => {
+    const category = c.req.query("category")?.trim() ?? "";
+    const momentum = c.req.query("momentum")?.trim() ?? "";
+
+    let filtered = TRENDS_DATA;
+    if (category) {
+      const q = category.toLowerCase();
+      filtered = filtered.filter((t) => t.category.toLowerCase().includes(q));
+    }
+    if (momentum) {
+      filtered = filtered.filter((t) => t.momentum === momentum);
+    }
+    return c.json({ trends: filtered }, 200);
+  })
+
+  // ── Stage 1 — Fast preview generation ──────────────────────────────────────
+  .post("/generate/previews", async (c) => {
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON body" } satisfies ApiError, 400);
+    }
+
+    const result = GenerateInputSchema.safeParse(body);
+    if (!result.success) {
+      return c.json(
+        { error: "Validation failed", details: result.error.flatten() } satisfies ApiError,
+        400
+      );
+    }
+
+    const input = result.data;
+    const apiKey = OPENROUTER_API_KEY;
+    let previews;
+    let aiGenerated = false;
+
+    if (apiKey) {
+      try {
+        previews = await generatePreviewsWithAI(input, apiKey);
+        aiGenerated = true;
+      } catch (err) {
+        console.error("[/generate/previews] AI failed, using mock:", (err as Error).message);
+        previews = generateProjects(input);
+      }
+    } else {
+      previews = generateProjects(input);
+    }
+
+    return c.json(
+      {
+        previews,
+        meta: { aiGenerated, generatedAt: new Date().toISOString() },
+      } satisfies GeneratePreviewsResponse,
+      200
+    );
+  })
+
+  // ── Stage 2 — Deep generation for a single project ─────────────────────────
+  .post("/generate/detail", async (c) => {
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON body" } satisfies ApiError, 400);
+    }
+
+    const result = DetailInputSchema.safeParse(body);
+    if (!result.success) {
+      return c.json(
+        { error: "Validation failed", details: result.error.flatten() } satisfies ApiError,
+        400
+      );
+    }
+
+    const { preview, input } = result.data;
+    const apiKey = OPENROUTER_API_KEY;
+
+    if (!apiKey) {
+      // Mock fallback — return preview with empty detail fields
+      return c.json(
+        {
+          detail: {
+            ...preview,
+            problemStatement: "",
+            whyItMatters: "",
+            coreInnovation: "",
+            architecture: "",
+            requiredSkills: preview.tags ?? [],
+            techStack: [],
+            recommendedModels: [],
+            datasets: [],
+            apis: [],
+            evaluationMetrics: [],
+            roadmap: [
+              "Setup environment and baseline",
+              "Implement core model",
+              "Evaluate and iterate",
+              "Deploy and document",
+            ],
+            deployment: "Hugging Face Spaces + Gradio",
+            scalingIdeas: ["Scale dataset", "Distill model"],
+            futureImprovements: [
+              "Extend to new domains",
+              "Open source codebase",
+            ],
+          },
+        } satisfies GenerateDetailResponse,
+        200
+      );
+    }
+
+    try {
+      const detail = await generateProjectDetailWithAI(preview, input, apiKey);
+      return c.json({ detail } satisfies GenerateDetailResponse, 200);
+    } catch (err) {
+      console.error("[/generate/detail] Deep gen failed:", (err as Error).message);
+      return c.json(
+        { error: "Detail generation failed", detail: null } satisfies GenerateDetailResponse,
+        500
+      );
+    }
+  })
+
+  // ── Legacy /generate (single-stage) ────────────────────────────────────────
+  .post("/generate", async (c) => {
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON body" } satisfies ApiError, 400);
+    }
+
+    const result = GenerateInputSchema.safeParse(body);
+    if (!result.success) {
+      return c.json(
+        { error: "Validation failed", details: result.error.flatten() } satisfies ApiError,
+        400
+      );
+    }
+
+    const input = result.data;
+    const apiKey = OPENROUTER_API_KEY;
+    let projects;
+    let aiGenerated = false;
+    let modelUsed = "mock";
+
+    if (apiKey) {
+      try {
+        projects = await generateProjectsWithAI(input, apiKey);
+        aiGenerated = true;
+        modelUsed = "openrouter-free";
+      } catch (err) {
+        console.error("[/generate] OpenRouter failed, using mock:", (err as Error).message);
+        projects = generateProjects(input);
+      }
+    } else {
+      projects = generateProjects(input);
+    }
+
+    return c.json(
+      {
+        projects,
+        meta: {
+          ...input,
+          generatedAt: new Date().toISOString(),
+          aiGenerated,
+          modelUsed,
+        },
+      },
+      200
+    );
+  })
+
+  // ── Saved projects ──────────────────────────────────────────────────────────
+  .get("/projects/saved", async (c) => {
+    const sessionId = c.req.header("x-session-id")?.trim() || "anonymous";
+
+    const rows = await db
+      .select()
+      .from(schema.savedProjects)
+      .where(eq(schema.savedProjects.sessionId, sessionId));
+
+    const parsed: SavedProject[] = rows.map((p) => ({
+      ...p,
+      domains: safeParseJsonArray(p.domains),
+      interests: safeParseJsonArray(p.interests),
+      roadmap: safeParseJsonArray(p.roadmap),
+      datasets: safeParseJsonArray(p.datasets),
+      apis: safeParseJsonArray(p.apis),
+      targetCompanies: safeParseJsonArray(p.targetCompanies),
+    }));
+
+    return c.json({ projects: parsed }, 200);
+  })
+
+  .post("/projects/save", async (c) => {
+    const sessionId = c.req.header("x-session-id")?.trim() || "anonymous";
+
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "Invalid JSON body" } satisfies ApiError, 400);
+    }
+
+    const result = SaveProjectSchema.safeParse(body);
+    if (!result.success) {
+      return c.json(
+        { error: "Validation failed", details: result.error.flatten() } satisfies ApiError,
+        400
+      );
+    }
+
+    const data = result.data;
+
+    // Prevent duplicate: same session + same title
+    const existing = await db
+      .select({ id: schema.savedProjects.id })
+      .from(schema.savedProjects)
+      .where(
+        and(
+          eq(schema.savedProjects.sessionId, sessionId),
+          eq(schema.savedProjects.title, data.title)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      return c.json(
+        { error: "Project already saved", id: existing[0].id },
+        409
+      );
+    }
+
+    const [saved] = await db
+      .insert(schema.savedProjects)
+      .values({
+        sessionId,
+        title: data.title,
+        pitch: data.pitch,
+        domains: JSON.stringify(data.tags),
+        interests: JSON.stringify([]),
+        difficulty: data.difficulty,
+        timeEstimate: data.timeEstimate,
+        originalityScore: data.originalityScore,
+        recruiterScore: data.recruiterScore,
+        startupScore: data.startupScore,
+        architecture: data.architecture,
+        roadmap: JSON.stringify(data.roadmap),
+        datasets: JSON.stringify(data.datasets),
+        apis: JSON.stringify(data.apis),
+        deployment: data.deployment,
+        targetCompanies: JSON.stringify(data.targetCompanies),
+      })
+      .returning();
+
+    return c.json({ project: saved }, 201);
+  })
+
+  .delete("/projects/saved/:id", async (c) => {
+    const paramResult = IdParamSchema.safeParse({ id: c.req.param("id") });
+    if (!paramResult.success) {
+      return c.json({ error: "Invalid id" } satisfies ApiError, 400);
+    }
+
+    const { id } = paramResult.data;
+    const sessionId = c.req.header("x-session-id")?.trim() || "anonymous";
+
+    // Only delete rows belonging to the requesting session
+    await db
+      .delete(schema.savedProjects)
+      .where(
+        and(
+          eq(schema.savedProjects.id, id),
+          eq(schema.savedProjects.sessionId, sessionId)
+        )
+      );
+
+    return c.json({ success: true }, 200);
+  })
+
+  // ── Career roadmaps ─────────────────────────────────────────────────────────
+  .get("/roadmaps", (c) => {
+    const roadmaps = [
+      {
+        id: "ml-engineer",
+        title: "ML Engineer Roadmap",
+        description:
+          "From ML fundamentals to production ML systems at top AI companies",
+        targetCompanies: ["OpenAI", "DeepMind", "Anthropic", "NVIDIA"],
+        duration: "6-12 months",
+        difficulty: "Advanced",
+        steps: [
+          {
+            phase: "Foundation",
+            duration: "4-6 weeks",
+            topics: [
+              "Python ML stack",
+              "Linear algebra",
+              "Statistics",
+              "PyTorch basics",
+            ],
+          },
+          {
+            phase: "Core ML",
+            duration: "6-8 weeks",
+            topics: [
+              "Supervised/unsupervised learning",
+              "Deep learning",
+              "CNNs/RNNs/Transformers",
+              "Training dynamics",
+            ],
+          },
+          {
+            phase: "LLMs & Gen AI",
+            duration: "6-8 weeks",
+            topics: [
+              "Transformer architecture",
+              "Pre-training",
+              "Fine-tuning",
+              "RLHF",
+              "RAG systems",
+            ],
+          },
+          {
+            phase: "MLOps",
+            duration: "4-6 weeks",
+            topics: [
+              "Experiment tracking",
+              "Model serving",
+              "Monitoring",
+              "Infrastructure",
+            ],
+          },
+          {
+            phase: "Portfolio Projects",
+            duration: "8-12 weeks",
+            topics: [
+              "End-to-end ML systems",
+              "Open source contributions",
+              "Research paper implementation",
+            ],
+          },
+          {
+            phase: "Interview Prep",
+            duration: "4-6 weeks",
+            topics: [
+              "ML system design",
+              "Coding",
+              "Research discussion",
+              "Behavioral",
+            ],
+          },
+        ],
+        resources: [
+          "fast.ai",
+          "CS231n",
+          "Andrej Karpathy lectures",
+          "HuggingFace course",
+        ],
+      },
+      {
+        id: "ai-researcher",
+        title: "AI Researcher Roadmap",
+        description:
+          "Path to publishing research and joining top AI labs",
+        targetCompanies: ["DeepMind", "Anthropic", "OpenAI", "Meta AI"],
+        duration: "12-24 months",
+        difficulty: "Researcher",
+        steps: [
+          {
+            phase: "Math Foundation",
+            duration: "8-10 weeks",
+            topics: [
+              "Linear algebra",
+              "Calculus",
+              "Probability theory",
+              "Information theory",
+            ],
+          },
+          {
+            phase: "Deep Learning",
+            duration: "8-10 weeks",
+            topics: [
+              "Backprop",
+              "Optimization",
+              "Architectures",
+              "Training tricks",
+            ],
+          },
+          {
+            phase: "Research Reading",
+            duration: "Ongoing",
+            topics: [
+              "100 foundational papers",
+              "arXiv daily reading",
+              "Paper summaries",
+              "Implementation practice",
+            ],
+          },
+          {
+            phase: "Specialization",
+            duration: "12-16 weeks",
+            topics: [
+              "Pick 1-2 research areas",
+              "Deep dive implementations",
+              "Reproduce SOTA results",
+            ],
+          },
+          {
+            phase: "Original Research",
+            duration: "16-24 weeks",
+            topics: [
+              "Novel hypothesis",
+              "Experiments",
+              "Writing",
+              "arXiv submission",
+            ],
+          },
+          {
+            phase: "Community",
+            duration: "Ongoing",
+            topics: [
+              "NeurIPS/ICML submissions",
+              "Open source",
+              "Blog posts",
+              "Collaborations",
+            ],
+          },
+        ],
+        resources: [
+          "The Matrix Calculus You Need",
+          "Deep Learning Book",
+          "Distill.pub",
+          "Papers With Code",
+        ],
+      },
+      {
+        id: "ai-startup-founder",
+        title: "AI Startup Founder Roadmap",
+        description: "Build and launch an AI product from zero to YC-ready",
+        targetCompanies: ["YC", "a16z", "Sequoia"],
+        duration: "6-12 months",
+        difficulty: "Advanced",
+        steps: [
+          {
+            phase: "AI Literacy",
+            duration: "4-6 weeks",
+            topics: [
+              "LLM APIs",
+              "Prompt engineering",
+              "Fine-tuning basics",
+              "AI product design",
+            ],
+          },
+          {
+            phase: "Ideation",
+            duration: "2-4 weeks",
+            topics: [
+              "Problem identification",
+              "Market research",
+              "AI advantage analysis",
+              "Validation interviews",
+            ],
+          },
+          {
+            phase: "Build MVP",
+            duration: "6-8 weeks",
+            topics: [
+              "Rapid prototyping",
+              "AI integration",
+              "Core UX",
+              "User testing",
+            ],
+          },
+          {
+            phase: "Launch",
+            duration: "2-4 weeks",
+            topics: [
+              "ProductHunt",
+              "Twitter/X",
+              "Indie Hackers",
+              "Early users",
+            ],
+          },
+          {
+            phase: "Traction",
+            duration: "8-12 weeks",
+            topics: [
+              "PMF discovery",
+              "Pricing",
+              "Growth loops",
+              "Metrics",
+            ],
+          },
+          {
+            phase: "Fundraising",
+            duration: "4-8 weeks",
+            topics: [
+              "YC application",
+              "Pitch deck",
+              "Investor outreach",
+              "Due diligence",
+            ],
+          },
+        ],
+        resources: [
+          "YC Startup School",
+          "Paul Graham Essays",
+          "Lenny's Newsletter",
+          "Indie Hackers",
+        ],
+      },
+    ];
+
+    return c.json({ roadmaps }, 200);
+  });
+
+export type AppType = typeof app;
+export default app;
