@@ -5,12 +5,8 @@ import * as schema from "./database/schema";
 import { eq, and } from "drizzle-orm";
 import { COMPANIES_DATA } from "./data/companies";
 import { TRENDS_DATA } from "./data/trends";
-import {
-  generateProjectsWithAI,
-  generatePreviewsWithAI,
-  generateProjectDetailWithAI,
-} from "./data/openrouter";
-import { generateProjects } from "./data/mockGenerator";
+import { generatePreviews, generateDetail } from "./data/llmChain";
+import type { ProviderKeys } from "./data/llmChain";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import {
@@ -42,12 +38,22 @@ function loadEnvKey(key: string): string | undefined {
   return undefined;
 }
 
-const OPENROUTER_API_KEY = loadEnvKey("OPENROUTER_API_KEY");
-// Deliberately NOT logging the key value — just availability
-console.log(
-  "[Frontier] OpenRouter key:",
-  OPENROUTER_API_KEY ? "present" : "missing (will use mock)"
-);
+// Load all provider keys at startup (backend-only — never sent to frontend)
+const PROVIDER_KEYS: ProviderKeys = {
+  geminiKey:          loadEnvKey("GEMINI_API_KEY"),
+  groqKey:            loadEnvKey("GROQ_API_KEY"),
+  openrouterKey:      loadEnvKey("OPENROUTER_API_KEY"),
+  githubToken:        loadEnvKey("GITHUB_TOKEN"),
+  semanticScholarKey: loadEnvKey("SEMANTIC_SCHOLAR_API_KEY"),
+};
+
+// Log which providers are available (never log key values)
+console.log("[Frontier] LLM provider availability:");
+console.log("  Gemini:",          PROVIDER_KEYS.geminiKey     ? "✓ present" : "✗ missing");
+console.log("  Groq:",            PROVIDER_KEYS.groqKey       ? "✓ present" : "✗ missing");
+console.log("  OpenRouter:",      PROVIDER_KEYS.openrouterKey ? "✓ present" : "✗ missing");
+console.log("  GitHub token:",    PROVIDER_KEYS.githubToken   ? "✓ present" : "✗ optional");
+console.log("  Semantic Scholar:",PROVIDER_KEYS.semanticScholarKey ? "✓ present" : "✗ optional");
 
 // ─── Safe JSON parse helper ───────────────────────────────────────────────────
 
@@ -76,22 +82,18 @@ const app = new Hono()
   // ── Companies ───────────────────────────────────────────────────────────────
   .get("/companies", (c) => {
     const search = c.req.query("search")?.trim() ?? "";
-    const focus = c.req.query("focus")?.trim() ?? "";
+    const focus  = c.req.query("focus")?.trim() ?? "";
 
     let filtered = COMPANIES_DATA;
     if (search) {
       const q = search.toLowerCase();
       filtered = filtered.filter(
-        (co) =>
-          co.name.toLowerCase().includes(q) ||
-          co.tagline.toLowerCase().includes(q)
+        (co) => co.name.toLowerCase().includes(q) || co.tagline.toLowerCase().includes(q)
       );
     }
     if (focus) {
       const q = focus.toLowerCase();
-      filtered = filtered.filter((co) =>
-        co.focus.some((f) => f.toLowerCase().includes(q))
-      );
+      filtered = filtered.filter((co) => co.focus.some((f) => f.toLowerCase().includes(q)));
     }
     return c.json({ companies: filtered }, 200);
   })
@@ -137,32 +139,20 @@ const app = new Hono()
     }
 
     const input = result.data;
-    const apiKey = OPENROUTER_API_KEY;
-    let previews;
-    let aiGenerated = false;
-    let source: "openrouter" | "local-fallback" = "local-fallback";
-    let warning: string | undefined;
+    const { previews, provider, warnings } = await generatePreviews(input, PROVIDER_KEYS);
 
-    if (apiKey) {
-      try {
-        previews = await generatePreviewsWithAI(input, apiKey);
-        aiGenerated = true;
-        source = "openrouter";
-      } catch (err) {
-        const msg = (err as Error).message;
-        console.error("[/generate/previews] AI failed, using mock:", msg);
-        previews = generateProjects(input);
-        warning = `AI generation failed: ${msg}`;
-      }
-    } else {
-      previews = generateProjects(input);
-      warning = "No API key configured — using local fallback";
-    }
+    const aiGenerated = provider !== "local-fallback";
+    const warning     = warnings.length ? warnings[warnings.length - 1] : undefined;
 
     return c.json(
       {
         previews,
-        meta: { aiGenerated, generatedAt: new Date().toISOString(), source, warning },
+        meta: {
+          aiGenerated,
+          provider,
+          generatedAt: new Date().toISOString(),
+          warning,
+        },
       } satisfies GeneratePreviewsResponse,
       200
     );
@@ -186,47 +176,12 @@ const app = new Hono()
     }
 
     const { preview, input } = result.data;
-    const apiKey = OPENROUTER_API_KEY;
-
-    if (!apiKey) {
-      // Mock fallback — return preview with empty detail fields
-      return c.json(
-        {
-          detail: {
-            ...preview,
-            problemStatement: "",
-            whyItMatters: "",
-            coreInnovation: "",
-            architecture: "",
-            requiredSkills: preview.tags ?? [],
-            techStack: [],
-            recommendedModels: [],
-            datasets: [],
-            apis: [],
-            evaluationMetrics: [],
-            roadmap: [
-              "Setup environment and baseline",
-              "Implement core model",
-              "Evaluate and iterate",
-              "Deploy and document",
-            ],
-            deployment: "Hugging Face Spaces + Gradio",
-            scalingIdeas: ["Scale dataset", "Distill model"],
-            futureImprovements: [
-              "Extend to new domains",
-              "Open source codebase",
-            ],
-          },
-        } satisfies GenerateDetailResponse,
-        200
-      );
-    }
 
     try {
-      const detail = await generateProjectDetailWithAI(preview, input, apiKey);
+      const { detail } = await generateDetail(preview, input, PROVIDER_KEYS);
       return c.json({ detail } satisfies GenerateDetailResponse, 200);
     } catch (err) {
-      console.error("[/generate/detail] Deep gen failed:", (err as Error).message);
+      console.error("[/generate/detail] Unhandled error:", (err as Error).message);
       return c.json(
         { error: "Detail generation failed", detail: null } satisfies GenerateDetailResponse,
         500
@@ -234,7 +189,7 @@ const app = new Hono()
     }
   })
 
-  // ── Legacy /generate (single-stage) ────────────────────────────────────────
+  // ── Legacy /generate (single-stage, preserved for backward compat) ──────────
   .post("/generate", async (c) => {
     let body: unknown;
     try {
@@ -252,23 +207,8 @@ const app = new Hono()
     }
 
     const input = result.data;
-    const apiKey = OPENROUTER_API_KEY;
-    let projects;
-    let aiGenerated = false;
-    let modelUsed = "mock";
-
-    if (apiKey) {
-      try {
-        projects = await generateProjectsWithAI(input, apiKey);
-        aiGenerated = true;
-        modelUsed = "openrouter-free";
-      } catch (err) {
-        console.error("[/generate] OpenRouter failed, using mock:", (err as Error).message);
-        projects = generateProjects(input);
-      }
-    } else {
-      projects = generateProjects(input);
-    }
+    const { previews: projects, provider } = await generatePreviews(input, PROVIDER_KEYS);
+    const aiGenerated = provider !== "local-fallback";
 
     return c.json(
       {
@@ -277,7 +217,7 @@ const app = new Hono()
           ...input,
           generatedAt: new Date().toISOString(),
           aiGenerated,
-          modelUsed,
+          modelUsed: provider,
         },
       },
       200
@@ -295,11 +235,11 @@ const app = new Hono()
 
     const parsed: SavedProject[] = rows.map((p) => ({
       ...p,
-      domains: safeParseJsonArray(p.domains),
-      interests: safeParseJsonArray(p.interests),
-      roadmap: safeParseJsonArray(p.roadmap),
-      datasets: safeParseJsonArray(p.datasets),
-      apis: safeParseJsonArray(p.apis),
+      domains:         safeParseJsonArray(p.domains),
+      interests:       safeParseJsonArray(p.interests),
+      roadmap:         safeParseJsonArray(p.roadmap),
+      datasets:        safeParseJsonArray(p.datasets),
+      apis:            safeParseJsonArray(p.apis),
       targetCompanies: safeParseJsonArray(p.targetCompanies),
     }));
 
@@ -326,7 +266,6 @@ const app = new Hono()
 
     const data = result.data;
 
-    // Prevent duplicate: same session + same title
     const existing = await db
       .select({ id: schema.savedProjects.id })
       .from(schema.savedProjects)
@@ -339,31 +278,28 @@ const app = new Hono()
       .limit(1);
 
     if (existing.length > 0) {
-      return c.json(
-        { error: "Project already saved", id: existing[0].id },
-        409
-      );
+      return c.json({ error: "Project already saved", id: existing[0].id }, 409);
     }
 
     const [saved] = await db
       .insert(schema.savedProjects)
       .values({
         sessionId,
-        title: data.title,
-        pitch: data.pitch,
-        domains: JSON.stringify(data.tags),
-        interests: JSON.stringify([]),
-        difficulty: data.difficulty,
-        timeEstimate: data.timeEstimate,
+        title:            data.title,
+        pitch:            data.pitch,
+        domains:          JSON.stringify(data.tags),
+        interests:        JSON.stringify([]),
+        difficulty:       data.difficulty,
+        timeEstimate:     data.timeEstimate,
         originalityScore: data.originalityScore,
-        recruiterScore: data.recruiterScore,
-        startupScore: data.startupScore,
-        architecture: data.architecture,
-        roadmap: JSON.stringify(data.roadmap),
-        datasets: JSON.stringify(data.datasets),
-        apis: JSON.stringify(data.apis),
-        deployment: data.deployment,
-        targetCompanies: JSON.stringify(data.targetCompanies),
+        recruiterScore:   data.recruiterScore,
+        startupScore:     data.startupScore,
+        architecture:     data.architecture,
+        roadmap:          JSON.stringify(data.roadmap),
+        datasets:         JSON.stringify(data.datasets),
+        apis:             JSON.stringify(data.apis),
+        deployment:       data.deployment,
+        targetCompanies:  JSON.stringify(data.targetCompanies),
       })
       .returning();
 
@@ -379,7 +315,6 @@ const app = new Hono()
     const { id } = paramResult.data;
     const sessionId = c.req.header("x-session-id")?.trim() || "anonymous";
 
-    // Only delete rows belonging to the requesting session
     await db
       .delete(schema.savedProjects)
       .where(
@@ -398,155 +333,36 @@ const app = new Hono()
       {
         id: "ml-engineer",
         title: "ML Engineer Roadmap",
-        description:
-          "From ML fundamentals to production ML systems at top AI companies",
+        description: "From ML fundamentals to production ML systems at top AI companies",
         targetCompanies: ["OpenAI", "DeepMind", "Anthropic", "NVIDIA"],
         duration: "6-12 months",
         difficulty: "Advanced",
         steps: [
-          {
-            phase: "Foundation",
-            duration: "4-6 weeks",
-            topics: [
-              "Python ML stack",
-              "Linear algebra",
-              "Statistics",
-              "PyTorch basics",
-            ],
-          },
-          {
-            phase: "Core ML",
-            duration: "6-8 weeks",
-            topics: [
-              "Supervised/unsupervised learning",
-              "Deep learning",
-              "CNNs/RNNs/Transformers",
-              "Training dynamics",
-            ],
-          },
-          {
-            phase: "LLMs & Gen AI",
-            duration: "6-8 weeks",
-            topics: [
-              "Transformer architecture",
-              "Pre-training",
-              "Fine-tuning",
-              "RLHF",
-              "RAG systems",
-            ],
-          },
-          {
-            phase: "MLOps",
-            duration: "4-6 weeks",
-            topics: [
-              "Experiment tracking",
-              "Model serving",
-              "Monitoring",
-              "Infrastructure",
-            ],
-          },
-          {
-            phase: "Portfolio Projects",
-            duration: "8-12 weeks",
-            topics: [
-              "End-to-end ML systems",
-              "Open source contributions",
-              "Research paper implementation",
-            ],
-          },
-          {
-            phase: "Interview Prep",
-            duration: "4-6 weeks",
-            topics: [
-              "ML system design",
-              "Coding",
-              "Research discussion",
-              "Behavioral",
-            ],
-          },
+          { phase: "Foundation",       duration: "4-6 weeks",  topics: ["Python ML stack", "Linear algebra", "Statistics", "PyTorch basics"] },
+          { phase: "Core ML",          duration: "6-8 weeks",  topics: ["Supervised/unsupervised learning", "Deep learning", "CNNs/RNNs/Transformers", "Training dynamics"] },
+          { phase: "LLMs & Gen AI",    duration: "6-8 weeks",  topics: ["Transformer architecture", "Pre-training", "Fine-tuning", "RLHF", "RAG systems"] },
+          { phase: "MLOps",            duration: "4-6 weeks",  topics: ["Experiment tracking", "Model serving", "Monitoring", "Infrastructure"] },
+          { phase: "Portfolio Projects",duration: "8-12 weeks", topics: ["End-to-end ML systems", "Open source contributions", "Research paper implementation"] },
+          { phase: "Interview Prep",   duration: "4-6 weeks",  topics: ["ML system design", "Coding", "Research discussion", "Behavioral"] },
         ],
-        resources: [
-          "fast.ai",
-          "CS231n",
-          "Andrej Karpathy lectures",
-          "HuggingFace course",
-        ],
+        resources: ["fast.ai", "CS231n", "Andrej Karpathy lectures", "HuggingFace course"],
       },
       {
         id: "ai-researcher",
         title: "AI Researcher Roadmap",
-        description:
-          "Path to publishing research and joining top AI labs",
+        description: "Path to publishing research and joining top AI labs",
         targetCompanies: ["DeepMind", "Anthropic", "OpenAI", "Meta AI"],
         duration: "12-24 months",
         difficulty: "Researcher",
         steps: [
-          {
-            phase: "Math Foundation",
-            duration: "8-10 weeks",
-            topics: [
-              "Linear algebra",
-              "Calculus",
-              "Probability theory",
-              "Information theory",
-            ],
-          },
-          {
-            phase: "Deep Learning",
-            duration: "8-10 weeks",
-            topics: [
-              "Backprop",
-              "Optimization",
-              "Architectures",
-              "Training tricks",
-            ],
-          },
-          {
-            phase: "Research Reading",
-            duration: "Ongoing",
-            topics: [
-              "100 foundational papers",
-              "arXiv daily reading",
-              "Paper summaries",
-              "Implementation practice",
-            ],
-          },
-          {
-            phase: "Specialization",
-            duration: "12-16 weeks",
-            topics: [
-              "Pick 1-2 research areas",
-              "Deep dive implementations",
-              "Reproduce SOTA results",
-            ],
-          },
-          {
-            phase: "Original Research",
-            duration: "16-24 weeks",
-            topics: [
-              "Novel hypothesis",
-              "Experiments",
-              "Writing",
-              "arXiv submission",
-            ],
-          },
-          {
-            phase: "Community",
-            duration: "Ongoing",
-            topics: [
-              "NeurIPS/ICML submissions",
-              "Open source",
-              "Blog posts",
-              "Collaborations",
-            ],
-          },
+          { phase: "Math Foundation",   duration: "8-10 weeks",  topics: ["Linear algebra", "Calculus", "Probability theory", "Information theory"] },
+          { phase: "Deep Learning",     duration: "8-10 weeks",  topics: ["Backprop", "Optimization", "Architectures", "Training tricks"] },
+          { phase: "Research Reading",  duration: "Ongoing",     topics: ["100 foundational papers", "arXiv daily reading", "Paper summaries", "Implementation practice"] },
+          { phase: "Specialization",    duration: "12-16 weeks", topics: ["Pick 1-2 research areas", "Deep dive implementations", "Reproduce SOTA results"] },
+          { phase: "Original Research", duration: "16-24 weeks", topics: ["Novel hypothesis", "Experiments", "Writing", "arXiv submission"] },
+          { phase: "Community",         duration: "Ongoing",     topics: ["NeurIPS/ICML submissions", "Open source", "Blog posts", "Collaborations"] },
         ],
-        resources: [
-          "The Matrix Calculus You Need",
-          "Deep Learning Book",
-          "Distill.pub",
-          "Papers With Code",
-        ],
+        resources: ["The Matrix Calculus You Need", "Deep Learning Book", "Distill.pub", "Papers With Code"],
       },
       {
         id: "ai-startup-founder",
@@ -556,76 +372,16 @@ const app = new Hono()
         duration: "6-12 months",
         difficulty: "Advanced",
         steps: [
-          {
-            phase: "AI Literacy",
-            duration: "4-6 weeks",
-            topics: [
-              "LLM APIs",
-              "Prompt engineering",
-              "Fine-tuning basics",
-              "AI product design",
-            ],
-          },
-          {
-            phase: "Ideation",
-            duration: "2-4 weeks",
-            topics: [
-              "Problem identification",
-              "Market research",
-              "AI advantage analysis",
-              "Validation interviews",
-            ],
-          },
-          {
-            phase: "Build MVP",
-            duration: "6-8 weeks",
-            topics: [
-              "Rapid prototyping",
-              "AI integration",
-              "Core UX",
-              "User testing",
-            ],
-          },
-          {
-            phase: "Launch",
-            duration: "2-4 weeks",
-            topics: [
-              "ProductHunt",
-              "Twitter/X",
-              "Indie Hackers",
-              "Early users",
-            ],
-          },
-          {
-            phase: "Traction",
-            duration: "8-12 weeks",
-            topics: [
-              "PMF discovery",
-              "Pricing",
-              "Growth loops",
-              "Metrics",
-            ],
-          },
-          {
-            phase: "Fundraising",
-            duration: "4-8 weeks",
-            topics: [
-              "YC application",
-              "Pitch deck",
-              "Investor outreach",
-              "Due diligence",
-            ],
-          },
+          { phase: "AI Literacy",  duration: "4-6 weeks",  topics: ["LLM APIs", "Prompt engineering", "Fine-tuning basics", "AI product design"] },
+          { phase: "Ideation",     duration: "2-4 weeks",  topics: ["Problem identification", "Market research", "AI advantage analysis", "Validation interviews"] },
+          { phase: "Build MVP",    duration: "6-8 weeks",  topics: ["Rapid prototyping", "AI integration", "Core UX", "User testing"] },
+          { phase: "Launch",       duration: "2-4 weeks",  topics: ["ProductHunt", "Twitter/X", "Indie Hackers", "Early users"] },
+          { phase: "Traction",     duration: "8-12 weeks", topics: ["PMF discovery", "Pricing", "Growth loops", "Metrics"] },
+          { phase: "Fundraising",  duration: "4-8 weeks",  topics: ["YC application", "Pitch deck", "Investor outreach", "Due diligence"] },
         ],
-        resources: [
-          "YC Startup School",
-          "Paul Graham Essays",
-          "Lenny's Newsletter",
-          "Indie Hackers",
-        ],
+        resources: ["YC Startup School", "Paul Graham Essays", "Lenny's Newsletter", "Indie Hackers"],
       },
     ];
-
     return c.json({ roadmaps }, 200);
   });
 

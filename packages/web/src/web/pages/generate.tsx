@@ -9,7 +9,7 @@ import {
 import { PreviewCard } from "../components/generate/preview-card";
 import { SkeletonCard } from "../components/ui/skeleton-card";
 import { getSessionId } from "../lib/session";
-import type { ProjectPreview, GenerateInput } from "../../shared/types";
+import type { ProjectPreview, GenerateInput, LLMProvider } from "../../shared/types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -159,7 +159,7 @@ export default function GeneratePage() {
 
   const [previews, setPreviews] = useState<ProjectPreview[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [meta, setMeta] = useState<{ model?: string; generatedAt?: string; source?: "openrouter" | "local-fallback"; warning?: string } | null>(null);
+  const [meta, setMeta] = useState<{ model?: string; generatedAt?: string; provider?: LLMProvider; warning?: string } | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [duplicateIds, setDuplicateIds] = useState<Set<string>>(new Set());
 
@@ -198,7 +198,7 @@ export default function GeneratePage() {
       setMeta(data.meta ?? null);
     } catch (err) {
       console.error("Generate failed:", err);
-      setMeta({ source: "local-fallback", warning: (err as Error).message });
+      setMeta({ provider: "local-fallback", warning: (err as Error).message });
     } finally {
       setIsGenerating(false);
     }
@@ -350,7 +350,7 @@ export default function GeneratePage() {
               )}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              {showResults && meta?.source === "local-fallback" && (
+              {showResults && meta?.provider === "local-fallback" && (
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700,
                   color: "#b45309", background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)",
@@ -360,7 +360,17 @@ export default function GeneratePage() {
                   LOCAL FALLBACK
                 </span>
               )}
-              {showResults && meta?.source !== "local-fallback" && (
+              {showResults && meta?.provider && meta.provider !== "local-fallback" && (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700,
+                  color: "var(--text-muted)", background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)",
+                  padding: "4px 10px", borderRadius: 999, letterSpacing: "0.05em",
+                }}>
+                  <Bot size={11} />
+                  {meta.provider.toUpperCase()}
+                </span>
+              )}
+              {showResults && !meta?.provider && (
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700,
                   color: "var(--text-muted)", background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)",
