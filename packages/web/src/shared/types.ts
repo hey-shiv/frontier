@@ -55,14 +55,16 @@ export interface GenerateInput {
   seed?: number;
 }
 
+export type LLMProvider = "gemini" | "groq" | "openrouter" | "local-fallback";
+
 export interface GeneratePreviewsResponse {
   previews: ProjectPreview[];
   meta: {
     aiGenerated: boolean;
-    /** "openrouter" when AI succeeded, "local-fallback" when mock was used */
-    source: "openrouter" | "local-fallback";
+    /** Which provider actually produced the result */
+    provider: LLMProvider;
     generatedAt: string;
-    /** Set when AI failed and we fell back to local mock */
+    /** Set when a provider failed and we fell back */
     warning?: string;
   };
 }
