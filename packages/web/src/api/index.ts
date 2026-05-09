@@ -140,23 +140,29 @@ const app = new Hono()
     const apiKey = OPENROUTER_API_KEY;
     let previews;
     let aiGenerated = false;
+    let source: "openrouter" | "local-fallback" = "local-fallback";
+    let warning: string | undefined;
 
     if (apiKey) {
       try {
         previews = await generatePreviewsWithAI(input, apiKey);
         aiGenerated = true;
+        source = "openrouter";
       } catch (err) {
-        console.error("[/generate/previews] AI failed, using mock:", (err as Error).message);
+        const msg = (err as Error).message;
+        console.error("[/generate/previews] AI failed, using mock:", msg);
         previews = generateProjects(input);
+        warning = `AI generation failed: ${msg}`;
       }
     } else {
       previews = generateProjects(input);
+      warning = "No API key configured — using local fallback";
     }
 
     return c.json(
       {
         previews,
-        meta: { aiGenerated, generatedAt: new Date().toISOString() },
+        meta: { aiGenerated, generatedAt: new Date().toISOString(), source, warning },
       } satisfies GeneratePreviewsResponse,
       200
     );

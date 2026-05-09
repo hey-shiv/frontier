@@ -97,44 +97,30 @@ async function callModel(
   return data.choices?.[0]?.message?.content || "";
 }
 
-/** Race top N models in parallel — first valid response wins */
-async function raceModels(
+/**
+ * Try models one at a time (sequential) — stops at the first success.
+ * This prevents burning multiple credits in parallel on a low-balance account.
+ */
+async function tryModelsSequential(
   models: string[],
   messages: { role: string; content: string }[],
   apiKey: string,
   maxTokens: number,
   minLength = 100
 ): Promise<string> {
-  const RACE = models.slice(0, 3);
-  const SERIAL = models.slice(3);
-
-  // Race first batch
-  const raceResult = await Promise.any(
-    RACE.map(async (model) => {
-      console.log(`[OpenRouter] Racing: ${model}`);
-      const result = await callModel(model, messages, apiKey, maxTokens);
-      if (!result || result.length < minLength) throw new Error(`${model}: too short`);
-      console.log(`[OpenRouter] Winner: ${model}`);
-      return result;
-    })
-  ).catch(() => null);
-
-  if (raceResult) return raceResult;
-
-  // Serial fallback
-  for (const model of SERIAL) {
+  for (const model of models) {
     try {
-      console.log(`[OpenRouter] Fallback: ${model}`);
+      console.log(`[OpenRouter] Trying: ${model}`);
       const result = await callModel(model, messages, apiKey, maxTokens);
       if (result && result.length >= minLength) {
-        console.log(`[OpenRouter] Fallback success: ${model}`);
+        console.log(`[OpenRouter] Success: ${model}`);
         return result;
       }
+      console.warn(`[OpenRouter] ${model}: response too short (${result.length} chars), trying next`);
     } catch (e: any) {
-      console.warn(`[OpenRouter] ${model} failed: ${e.message?.slice(0, 80)}`);
+      console.warn(`[OpenRouter] ${model} failed: ${e.message?.slice(0, 120)}`);
     }
   }
-
   throw new Error("All OpenRouter models exhausted");
 }
 
@@ -179,45 +165,63 @@ const PREVIEW_SYSTEM = `You are an elite AI research director. Generate concise,
 Output ONLY a valid JSON array. No markdown, no prose, no code fences.`;
 
 function buildPreviewUserPrompt(input: GenerateInput): string {
-  const { domains, interests, companies, experience, goal, timeCommitment } = input;
+  const { domains, interests, companies, experience, goal, timeCommitment, seed } = input;
 
-  const combos = domains.slice(0, 3).flatMap(d =>
-    interests.slice(0, 3).map(i => `${d} × ${i}`)
-  ).slice(0, 6).join(" | ");
+  // Build ALL pairwise domain × interest combos so every selection influences output
+  const allCombos = domains.flatMap(d =>
+    (interests.length > 0 ? interests : ["AI"]).map(i => `${d} × ${i}`)
+  );
+  // Pick 4 distinct combos to assign one per project (round-robin if fewer than 4)
+  const assignedCombos = [0, 1, 2, 3].map(i => allCombos[i % allCombos.length]);
 
-  return `Generate exactly 4 project PREVIEWS for an ${experience} developer with goal: ${goal}.
+  return `Variation seed: ${seed ?? Date.now()} — use this to ensure unique output each call.
 
-Technical domains: ${domains.join(", ")}
-Personal interests: ${interests.join(", ") || "general technology"}
-Target companies: ${companies.join(", ") || "top AI labs"}
-Time: ${timeCommitment}
-Creative intersections: ${combos}
+Generate EXACTLY 4 project PREVIEWS for a ${experience}-level developer.
 
-Return ONLY this JSON array:
+== USER PROFILE ==
+Goal: ${goal}
+Time available: ${timeCommitment}
+ALL selected domains: ${domains.join(", ")}
+ALL selected interests: ${interests.join(", ") || "general technology"}
+ALL target companies: ${companies.join(", ") || "top AI labs"}
+
+== REQUIRED INTERSECTIONS (one per project) ==
+Project 1 must combine: ${assignedCombos[0]}
+Project 2 must combine: ${assignedCombos[1]}
+Project 3 must combine: ${assignedCombos[2]}
+Project 4 must combine: ${assignedCombos[3]}
+
+Each project MUST:
+- Be inspired by the assigned domain × interest intersection above
+- Be relevant to at least one of the target companies listed
+- Name a specific architecture, model, or technique in the title
+- Have a unique angle — no two projects may share the same category
+
+Return ONLY this JSON array (no markdown, no prose):
 [
   {
     "id": "kebab-slug-unique",
-    "title": "Specific technical title",
-    "pitch": "One sharp sentence: what + why technically impressive",
-    "researchBottleneck": "The exact technical bottleneck addressed (1 sentence)",
+    "title": "Specific technical title naming an architecture or technique",
+    "pitch": "One sharp sentence: what it does + why technically impressive",
+    "researchBottleneck": "The exact unsolved technical problem this tackles (1 sentence)",
     "tags": ["tag1", "tag2", "tag3", "tag4"],
     "category": "e.g. Generative Audio",
-    "difficulty": "Intermediate|Advanced|Researcher",
-    "timeEstimate": "realistic for ${timeCommitment}",
-    "researchLevel": "Internship|Research|Startup|Publishable",
-    "originalityScore": <85-99>,
-    "recruiterScore": <80-98>,
-    "startupScore": <70-97>,
-    "publishabilityScore": <70-99>,
-    "targetCompanies": ["Company1", "Company2"]
+    "difficulty": "${experience === "Beginner" ? "Beginner|Intermediate" : experience === "Researcher" ? "Advanced|Researcher" : "Intermediate|Advanced"}",
+    "timeEstimate": "realistic estimate within ${timeCommitment}",
+    "researchLevel": "${goal === "Internship" ? "Internship" : goal === "Research" ? "Research|Publishable" : goal === "Startup" ? "Startup" : "Research"}",
+    "originalityScore": <integer 80-99>,
+    "recruiterScore": <integer 75-99>,
+    "startupScore": <integer 65-99>,
+    "publishabilityScore": <integer 65-99>,
+    "targetCompanies": ["pick 1-2 from: ${companies.join(", ") || "OpenAI, DeepMind, Anthropic"}"]
   }
 ]
 
-Rules:
-- NEVER say "build a chatbot" or generic CRUD
-- Each title must name a specific architecture or technique
-- Creative cross-domain combinations required (${domains[0]} × ${interests[0] || "music"})
-- 4 projects only`;
+Hard rules:
+- Exactly 4 items, no more, no less
+- NEVER generic CRUD, chatbots, or todo apps
+- Each project uses a different primary domain from the list
+- Scores must differ between projects (no identical score rows)`;
 }
 
 export async function generatePreviewsWithAI(
@@ -238,7 +242,7 @@ export async function generatePreviewsWithAI(
     { role: "user", content: buildPreviewUserPrompt(input) },
   ];
 
-  const raw = await raceModels(FAST_MODELS, messages, apiKey, 1100, 150);
+  const raw = await tryModelsSequential(FAST_MODELS, messages, apiKey, 1100, 150);
   const parsed = extractArray(raw);
 
   const previews: ProjectPreview[] = parsed.map((p: any, idx: number) => ({
@@ -330,7 +334,7 @@ export async function generateProjectDetailWithAI(
     { role: "user", content: buildDeepUserPrompt(preview, input) },
   ];
 
-  const raw = await raceModels(DEEP_MODELS, messages, apiKey, 2000, 200);
+  const raw = await tryModelsSequential(DEEP_MODELS, messages, apiKey, 2000, 200);
   const p = extractObject(raw);
 
   const detail: ProjectDetail = {

@@ -159,7 +159,7 @@ export default function GeneratePage() {
 
   const [previews, setPreviews] = useState<ProjectPreview[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [meta, setMeta] = useState<{ model?: string; generatedAt?: string } | null>(null);
+  const [meta, setMeta] = useState<{ model?: string; generatedAt?: string; source?: "openrouter" | "local-fallback"; warning?: string } | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [duplicateIds, setDuplicateIds] = useState<Set<string>>(new Set());
 
@@ -189,11 +189,16 @@ export default function GeneratePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(errData.error ?? `HTTP ${res.status}`);
+      }
       const data = await res.json() as { previews?: ProjectPreview[]; meta?: typeof meta };
       setPreviews(data.previews ?? []);
       setMeta(data.meta ?? null);
     } catch (err) {
       console.error("Generate failed:", err);
+      setMeta({ source: "local-fallback", warning: (err as Error).message });
     } finally {
       setIsGenerating(false);
     }
@@ -332,7 +337,7 @@ export default function GeneratePage() {
         <div id="results-section" style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px 80px" }}>
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            marginBottom: 24, flexWrap: "wrap", gap: 12,
+            marginBottom: meta?.warning ? 12 : 24, flexWrap: "wrap", gap: 12,
           }}>
             <div>
               <h2 className="font-display" style={{ fontSize: 22, fontWeight: 800, color: "var(--text-primary)", margin: "0 0 4px", letterSpacing: "-0.02em" }}>
@@ -345,7 +350,17 @@ export default function GeneratePage() {
               )}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              {showResults && (
+              {showResults && meta?.source === "local-fallback" && (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700,
+                  color: "#b45309", background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)",
+                  padding: "4px 10px", borderRadius: 999, letterSpacing: "0.05em",
+                }}>
+                  <Bot size={11} />
+                  LOCAL FALLBACK
+                </span>
+              )}
+              {showResults && meta?.source !== "local-fallback" && (
                 <span style={{
                   display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700,
                   color: "var(--text-muted)", background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)",
@@ -367,6 +382,15 @@ export default function GeneratePage() {
               )}
             </div>
           </div>
+          {showResults && meta?.warning && (
+            <div style={{
+              marginBottom: 20, padding: "10px 14px", borderRadius: 8,
+              background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)",
+              fontSize: 12, color: "#92400e", fontFamily: "var(--font-mono)",
+            }}>
+              ⚠ {meta.warning}
+            </div>
+          )}
 
           {/* Cards grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 20 }}>

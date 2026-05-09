@@ -338,23 +338,21 @@ export function generateProjects(input: GenerateInput): ProjectRecommendation[] 
   const results: ProjectRecommendation[] = [];
   const seen = new Set<string>();
 
-  // Try to find matching templates
+  const expMultiplier =
+    input.experience === "Researcher" ? 1.05 :
+    input.experience === "Advanced" ? 1.0 :
+    input.experience === "Intermediate" ? 0.95 : 0.90;
+
+  // 1. Match domain × interest pairs from templates
   for (const domain of input.domains) {
     for (const interest of input.interests) {
       const key1 = `${domain}+${interest}`;
       const key2 = `${interest}+${domain}`;
-      
       const matches = PROJECT_TEMPLATES[key1] || PROJECT_TEMPLATES[key2];
       if (matches) {
         for (const project of matches) {
-          if (!seen.has(project.id)) {
+          if (!seen.has(project.id) && results.length < 4) {
             seen.add(project.id);
-            // Adjust scores based on experience
-            const expMultiplier = 
-              input.experience === "Researcher" ? 1.05 :
-              input.experience === "Advanced" ? 1.0 :
-              input.experience === "Intermediate" ? 0.95 : 0.90;
-            
             results.push({
               ...project,
               originalityScore: Math.min(99, Math.round(project.originalityScore * expMultiplier)),
@@ -367,25 +365,61 @@ export function generateProjects(input: GenerateInput): ProjectRecommendation[] 
     }
   }
 
-  // Generate domain-specific projects
+  // 2. Domain-specific fallback projects
   const domainProjects = generateDomainProjects(input);
   for (const p of domainProjects) {
-    if (!seen.has(p.id)) {
+    if (!seen.has(p.id) && results.length < 4) {
       seen.add(p.id);
       results.push(p);
     }
   }
 
-  // Fill with defaults if needed
-  for (const p of DEFAULT_PROJECTS) {
-    if (results.length >= 6) break;
-    if (!seen.has(p.id)) {
-      seen.add(p.id);
-      results.push(p);
+  // 3. If still under 4, synthesize one card per remaining domain × interest combo
+  //    (completely dynamic — never uses DEFAULT_PROJECTS)
+  const domains = input.domains.length > 0 ? input.domains : ["AI"];
+  const interests = input.interests.length > 0 ? input.interests : ["Technology"];
+  const companies = input.companies.length > 0 ? input.companies : ["OpenAI", "DeepMind"];
+
+  for (const domain of domains) {
+    for (const interest of interests) {
+      if (results.length >= 4) break;
+      const comboId = `dynamic-${domain.replace(/\s+/g, "-").toLowerCase()}-${interest.replace(/\s+/g, "-").toLowerCase()}`;
+      if (seen.has(comboId)) continue;
+      seen.add(comboId);
+      const company = companies[results.length % companies.length];
+      results.push({
+        id: comboId,
+        title: `${domain} × ${interest} Intelligence System`,
+        pitch: `A ${input.experience.toLowerCase()}-level ${domain} project blending ${interest.toLowerCase()} context — built to stand out in ${company} applications`,
+        originalityScore: Math.min(99, Math.round(84 * expMultiplier)),
+        recruiterScore: Math.min(99, Math.round(87 * expMultiplier)),
+        startupScore: Math.min(99, Math.round(81 * expMultiplier)),
+        difficulty: input.experience === "Beginner" ? "Intermediate" : input.experience === "Researcher" ? "Advanced" : input.experience,
+        timeEstimate: input.timeCommitment,
+        architecture: `Data pipeline → ${domain} model → ${interest} context encoder → Inference API → UI`,
+        roadmap: [
+          "Week 1: Dataset collection and preprocessing",
+          "Week 2: Baseline model implementation",
+          "Week 3: Domain adaptation and fine-tuning",
+          "Week 4: Evaluation, deployment, and documentation",
+        ],
+        datasets: [`${interest}-specific public dataset`, "HuggingFace Hub datasets", "Custom web scrape"],
+        apis: ["OpenAI API", "HuggingFace Inference", `${company} API (if available)`],
+        deployment: "Modal.com for inference + Vercel frontend",
+        tags: [domain, interest, "AI", input.goal],
+        targetCompanies: companies.slice(0, 2),
+        category: domain,
+        futureImprovements: [
+          `Extend to other ${interest.toLowerCase()} sub-domains`,
+          "Open-source the pipeline",
+          "Build a public leaderboard",
+        ],
+      });
     }
+    if (results.length >= 4) break;
   }
 
-  return results.slice(0, 6);
+  return results.slice(0, 4);
 }
 
 function generateDomainProjects(input: GenerateInput): ProjectRecommendation[] {
