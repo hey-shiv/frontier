@@ -1,32 +1,26 @@
-# Frontier Cleanup Task — COMPLETE
+# Frontier Fix Plan
 
-## All priorities done ✅
+## Root Causes
+1. FAST_MODELS raced in parallel — 3 simultaneous requests per generate click (credits wasted)
+2. mockGenerator returns same DEFAULT_PROJECTS for any combo not in hardcoded templates (only 7 combos covered)
+3. buildPreviewUserPrompt only uses domains[0]/interests[0] in the "creative intersections" hint — secondary picks ignored
+4. seed not passed into the prompt text itself — model can't vary based on it
+5. Frontend always shows "AI GENERATED" badge even when aiGenerated=false (silent fallback)
+6. Frontend silently ignores non-OK API responses
+7. GeneratePreviewsResponse.meta type doesn't include source/warning fields
+8. generateProjects() returns up to 6; should cap at 4 to match AI output
 
-1. [x] Rename template → frontier in all package.json files
-2. [x] Shared types file (src/shared/types.ts)
-3. [x] Zod schemas + validation in API routes (src/api/schemas.ts)
-4. [x] Remove unsafe API key logging
-5. [x] Safe JSON parse helpers for saved projects (safeParseJsonArray)
-6. [x] Duplicate save prevention (409 on same sessionId + title)
-7. [x] Fix session id — no hardcoded "local", always getSessionId()
-8. [x] Extract UI primitives: ScorePill, SectionHead, TagList, SkeletonCard → components/ui/
-9. [x] Extract generate components: DetailContent, PreviewCard → components/generate/
-10. [x] Rewrite generate.tsx — imports extracted components, proper types, 409 handling, no inline keyframes
-11. [x] Fix saved.tsx — SavedProject type, no double JSON.parse, session header on delete
-12. [x] Fix project-card.tsx — uses ProjectDetail type from shared, imports ScorePill from ui/
-13. [x] Electron IPC security — path traversal guard in fs:read/fs:write
-14. [x] ESLint config (packages/web/eslint.config.js)
-15. [x] Tests — 21 tests across 3 files, all pass
-16. [x] .gitignore — already had *.db, .env, dist-electron
-17. [x] Fix mobile import — @template/web → @frontier/web
-18. [x] Rewrite README.md
-19. [x] typecheck — 0 errors
+## Files to Change
+- shared/types.ts — add source/warning to meta type
+- api/data/openrouter.ts — sequential model attempts, stronger prompt with all fields + seed
+- api/data/mockGenerator.ts — dynamic generation from ALL domain×interest×company combos, cap at 4
+- api/index.ts — pass source/warning in response meta
+- web/pages/generate.tsx — show LOCAL FALLBACK badge, handle errors/warnings, handle non-OK responses
 
-## Final state
-- TypeScript: clean (0 errors)
-- Tests: 21/21 pass
-- No hardcoded session IDs
-- No API key logging  
-- No double JSON.parse
-- No duplicate type definitions
-- Electron IPC path-guarded
+## Checklist
+- [ ] types.ts — GeneratePreviewsResponse meta updated
+- [ ] openrouter.ts — sequential (not parallel), prompt uses ALL domains/interests/companies/seed
+- [ ] mockGenerator.ts — dynamic combos, no DEFAULT_PROJECTS fallback, cap 4
+- [ ] api/index.ts — source + warning in meta
+- [ ] generate.tsx — UI shows fallback warning, handles errors
+- [ ] typecheck passes with no API calls

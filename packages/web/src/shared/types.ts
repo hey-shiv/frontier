@@ -59,7 +59,11 @@ export interface GeneratePreviewsResponse {
   previews: ProjectPreview[];
   meta: {
     aiGenerated: boolean;
+    /** "openrouter" when AI succeeded, "local-fallback" when mock was used */
+    source: "openrouter" | "local-fallback";
     generatedAt: string;
+    /** Set when AI failed and we fell back to local mock */
+    warning?: string;
   };
 }
 
