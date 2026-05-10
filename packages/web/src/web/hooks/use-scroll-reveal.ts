@@ -1,42 +1,65 @@
 import { useEffect, useRef } from "react";
 
-export function useScrollReveal(options = { threshold: 0.15 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+/**
+ * Attaches an IntersectionObserver to the returned ref.
+ * When the element enters the viewport, all children with
+ * `.reveal-target` class get `.revealed` added with staggered delay.
+ */
+export function useScrollReveal(threshold = 0.1) {
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const el = ref.current;
+    if (!el) return;
 
-    // We target immediate children of the container
-    const children = Array.from(container.children) as HTMLElement[];
-    
-    // Set initial state
-    children.forEach((child) => {
-      child.style.opacity = "0";
-      child.style.transform = "translateY(32px)";
-      child.style.transition = "opacity 600ms cubic-bezier(0.16, 1, 0.3, 1), transform 600ms cubic-bezier(0.16, 1, 0.3, 1)";
-    });
+    const targets = el.querySelectorAll<HTMLElement>(".reveal-target");
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          children.forEach((child, index) => {
-            setTimeout(() => {
-              child.style.opacity = "1";
-              child.style.transform = "translateY(0)";
-            }, index * 80); // Stagger by 80ms
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          targets.forEach((t, i) => {
+            setTimeout(() => t.classList.add("revealed"), i * 70);
           });
-          observer.unobserve(container);
-        }
-      });
-    }, options);
+          observer.unobserve(entry.target);
+        });
+      },
+      { threshold, rootMargin: "0px 0px -40px 0px" }
+    );
 
-    observer.observe(container);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [threshold]);
 
-    return () => {
-      observer.disconnect();
-    };
-  }, [options.threshold]);
+  return ref;
+}
 
-  return containerRef;
+/**
+ * Simpler version for single elements — just pass the ref
+ * and call revealSelf() to trigger.
+ */
+export function useRevealSelf(delay = 0) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          setTimeout(() => el.classList.add("revealed"), delay);
+          observer.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" }
+    );
+
+    el.classList.add("reveal-target");
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [delay]);
+
+  return ref;
 }

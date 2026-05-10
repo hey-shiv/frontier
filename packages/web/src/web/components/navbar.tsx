@@ -1,7 +1,24 @@
 import { Link, useLocation } from "wouter";
+import { useState, useEffect } from "react";
+
+const NAV_LINKS = [
+  { href: "/",         label: "HOME"      },
+  { href: "/generate", label: "GENERATE"  },
+  { href: "/companies",label: "COMPANIES" },
+  { href: "/trends",   label: "TRENDS"    },
+  { href: "/roadmaps", label: "ROADMAPS"  },
+  { href: "/saved",    label: "LIBRARY"   },
+];
 
 export function Navbar() {
   const [location] = useLocation();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <nav
@@ -10,19 +27,22 @@ export function Navbar() {
         top: 0,
         left: 0,
         right: 0,
-        zIndex: 50,
-        background: "rgba(5,5,15,0.75)",
-        backdropFilter: "blur(20px) saturate(180%)",
-        WebkitBackdropFilter: "blur(20px) saturate(180%)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        height: 52,
+        zIndex: 100,
+        height: 56,
+        background: scrolled
+          ? "rgba(4, 4, 14, 0.88)"
+          : "rgba(4, 4, 14, 0.6)",
+        backdropFilter: "blur(24px) saturate(180%)",
+        WebkitBackdropFilter: "blur(24px) saturate(180%)",
+        borderBottom: `1px solid ${scrolled ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.03)"}`,
+        transition: "background 300ms ease, border-color 300ms ease",
       }}
     >
       <div
         style={{
-          maxWidth: "80rem", /* 7xl */
+          maxWidth: "82rem",
           margin: "0 auto",
-          padding: "0 24px",
+          padding: "0 32px",
           height: "100%",
           display: "flex",
           alignItems: "center",
@@ -34,12 +54,20 @@ export function Navbar() {
           <div
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: 13,
-              fontWeight: 400,
+              fontSize: 12,
+              fontWeight: 500,
               textTransform: "uppercase",
-              letterSpacing: "0.3em",
-              color: "#F0F4FF",
+              letterSpacing: "0.35em",
+              color: "var(--text-1)",
               cursor: "pointer",
+              transition: "text-shadow 300ms ease",
+              userSelect: "none",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.textShadow = "0 0 20px rgba(59,130,246,0.6)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.textShadow = "none";
             }}
           >
             FRONTIER
@@ -47,42 +75,46 @@ export function Navbar() {
         </Link>
 
         {/* Links */}
-        <div style={{ display: "flex", gap: 24, alignItems: "center", height: "100%" }}>
-          {[
-            { href: "/generate", label: "GENERATE" },
-            { href: "/companies", label: "COMPANIES" },
-            { href: "/trends", label: "TRENDS" },
-            { href: "/roadmaps", label: "ROADMAPS" },
-            { href: "/saved", label: "LIBRARY" },
-          ].map(({ href, label }) => {
-            const active = location === href || (href !== "/" && location.startsWith(href));
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {NAV_LINKS.map(({ href, label }) => {
+            const isActive =
+              href === "/" ? location === "/" : location.startsWith(href);
             return (
-              <Link key={href} href={href} style={{ textDecoration: "none", height: "100%" }}>
-                <span
+              <Link key={href} href={href} style={{ textDecoration: "none" }}>
+                <div
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    height: "100%",
+                    position: "relative",
+                    padding: "6px 12px",
+                    borderRadius: "var(--r-sm)",
                     fontFamily: "var(--font-mono)",
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: 400,
                     textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    color: active ? "#F0F4FF" : "#F0F4FF",
-                    opacity: active ? 1 : 0.4,
-                    borderBottom: active ? "1px solid rgba(59,130,246,0.5)" : "1px solid transparent",
-                    transition: "all 0.2s ease",
+                    letterSpacing: "0.12em",
+                    color: isActive ? "var(--text-1)" : "var(--text-3)",
+                    background: isActive ? "rgba(59,130,246,0.08)" : "transparent",
+                    border: isActive
+                      ? "1px solid rgba(59,130,246,0.18)"
+                      : "1px solid transparent",
+                    transition: "all 200ms var(--ease-out)",
                     cursor: "pointer",
+                    userSelect: "none",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = "1";
+                    if (!isActive) {
+                      e.currentTarget.style.color = "var(--text-1)";
+                      e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    if (!active) e.currentTarget.style.opacity = "0.4";
+                    if (!isActive) {
+                      e.currentTarget.style.color = "var(--text-3)";
+                      e.currentTarget.style.background = "transparent";
+                    }
                   }}
                 >
                   {label}
-                </span>
+                </div>
               </Link>
             );
           })}

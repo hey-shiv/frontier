@@ -1,73 +1,155 @@
 import type { ProjectDetail } from "../../../shared/types";
 
-interface Props {
-  detail: ProjectDetail;
-}
+// ─── Internal components ──────────────────────────────────────────────────────
 
 function SpecHeader({ title }: { title: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "48px 0 20px" }}>
-      <div style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: 11,
-        textTransform: "uppercase",
-        color: "rgba(255,255,255,0.4)",
-      }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+        margin: "56px 0 24px",
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          textTransform: "uppercase",
+          letterSpacing: "0.18em",
+          color: "var(--text-3)",
+          whiteSpace: "nowrap",
+        }}
+      >
         — {title}
-      </div>
-      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
-    </div>
-  );
-}
-
-function CodeBlock({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      fontFamily: "var(--font-mono)",
-      fontSize: 13,
-      color: "#93C5FD",
-      background: "rgba(255,255,255,0.03)",
-      border: "1px solid rgba(255,255,255,0.06)",
-      padding: "16px 20px",
-      borderRadius: 8,
-      lineHeight: 1.6,
-      whiteSpace: "pre-wrap",
-    }}>
-      {children}
+      </span>
+      <div
+        style={{
+          flex: 1,
+          height: 1,
+          background:
+            "linear-gradient(to right, rgba(255,255,255,0.07), transparent)",
+        }}
+      />
     </div>
   );
 }
 
 function TextBlock({ children }: { children: React.ReactNode }) {
   return (
-    <p style={{
-      fontFamily: "var(--font-body)",
-      fontSize: 14,
-      color: "rgba(255,255,255,0.7)",
-      lineHeight: 1.8,
-      margin: 0,
-    }}>
+    <p
+      style={{
+        fontFamily: "var(--font-body)",
+        fontSize: 15,
+        fontWeight: 400,
+        color: "rgba(255,255,255,0.62)",
+        lineHeight: 1.85,
+        margin: 0,
+      }}
+    >
       {children}
     </p>
   );
 }
 
-export function DetailContent({ detail }: Props) {
+function MiniLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ paddingBottom: 100 }}>
-      {/* Overview */}
+    <div
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 10,
+        textTransform: "uppercase",
+        letterSpacing: "0.14em",
+        color: "var(--text-4)",
+        marginBottom: 12,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function CodeBlock({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 12,
+        color: "#93C5FD",
+        background: "rgba(59,130,246,0.05)",
+        border: "1px solid rgba(59,130,246,0.12)",
+        borderLeft: "3px solid rgba(59,130,246,0.4)",
+        padding: "20px 24px",
+        borderRadius: "0 var(--r-md) var(--r-md) 0",
+        lineHeight: 1.75,
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function TagCloud({
+  items,
+  accent = false,
+}: {
+  items: string[];
+  accent?: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      {items.map((item) => (
+        <span
+          key={item}
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            color: accent ? "#93C5FD" : "var(--text-2)",
+            background: accent
+              ? "rgba(59,130,246,0.08)"
+              : "rgba(255,255,255,0.03)",
+            border: accent
+              ? "1px solid rgba(59,130,246,0.18)"
+              : "1px solid var(--border-subtle)",
+            padding: "5px 12px",
+            borderRadius: "var(--r-sm)",
+            letterSpacing: "0.04em",
+          }}
+        >
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export function DetailContent({ detail }: { detail: ProjectDetail }) {
+  return (
+    <div>
+      {/* Problem & Innovation */}
       {(detail.problemStatement || detail.coreInnovation) && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 36 }}>
           {detail.problemStatement && (
             <div>
-              <SpecHeader title="Problem" />
+              <MiniLabel>Problem</MiniLabel>
               <TextBlock>{detail.problemStatement}</TextBlock>
             </div>
           )}
           {detail.coreInnovation && (
             <div>
-              <SpecHeader title="Core Innovation" />
+              <MiniLabel>Core Innovation</MiniLabel>
               <TextBlock>{detail.coreInnovation}</TextBlock>
+            </div>
+          )}
+          {detail.whyItMatters && (
+            <div>
+              <MiniLabel>Why It Matters</MiniLabel>
+              <TextBlock>{detail.whyItMatters}</TextBlock>
             </div>
           )}
         </div>
@@ -81,52 +163,64 @@ export function DetailContent({ detail }: Props) {
         </div>
       )}
 
-      {/* Roadmap Timeline */}
+      {/* Roadmap */}
       {detail.roadmap?.length > 0 && (
         <div>
           <SpecHeader title="Roadmap" />
-          <div style={{ position: "relative", paddingLeft: 32 }}>
-            {/* Vertical Line */}
-            <div style={{
-              position: "absolute",
-              left: 4,
-              top: 10,
-              bottom: 0,
-              width: 2,
-              background: "linear-gradient(to bottom, #3B82F6, rgba(59,130,246,0.1))",
-            }} />
-            
+          <div style={{ position: "relative", paddingLeft: 28 }}>
+            {/* Vertical gradient line */}
+            <div
+              style={{
+                position: "absolute",
+                left: 4,
+                top: 10,
+                bottom: 10,
+                width: 2,
+                background:
+                  "linear-gradient(to bottom, var(--blue), rgba(59,130,246,0.08))",
+                borderRadius: 2,
+              }}
+            />
+
             {detail.roadmap.map((step, i) => {
-              // Extremely simple heuristic to split out a date/phase label from description if it exists
-              // Example: "Week 1-2: Setup environment" -> label: "Week 1-2", desc: "Setup environment"
               const splitIdx = step.indexOf(":");
               let label = `Phase ${i + 1}`;
               let desc = step;
-              if (splitIdx > 0 && splitIdx < 30) {
+              if (splitIdx > 0 && splitIdx < 35) {
                 label = step.substring(0, splitIdx).trim();
                 desc = step.substring(splitIdx + 1).trim();
               }
 
               return (
-                <div key={i} style={{ position: "relative", marginBottom: 32 }}>
+                <div
+                  key={i}
+                  style={{ position: "relative", marginBottom: 36 }}
+                >
                   {/* Dot */}
-                  <div style={{
-                    position: "absolute",
-                    left: -33, // -32px padding + 4px line offset - 5px radius
-                    top: 6,
-                    width: 10,
-                    height: 10,
-                    borderRadius: "50%",
-                    background: "#3B82F6",
-                    boxShadow: "0 0 0 3px rgba(59,130,246,0.15), 0 0 12px rgba(59,130,246,0.4)",
-                  }} />
-                  
-                  <div style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    color: "rgba(255,255,255,0.4)",
-                    marginBottom: 4,
-                  }}>
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: -29,
+                      top: 5,
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      background: "var(--blue)",
+                      border: "2px solid rgba(59,130,246,0.2)",
+                      boxShadow: "0 0 0 4px rgba(59,130,246,0.08), 0 0 12px rgba(59,130,246,0.4)",
+                    }}
+                  />
+
+                  <div
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 10,
+                      color: "var(--text-3)",
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      marginBottom: 6,
+                    }}
+                  >
                     {label}
                   </div>
                   <TextBlock>{desc}</TextBlock>
@@ -137,63 +231,144 @@ export function DetailContent({ detail }: Props) {
         </div>
       )}
 
-      {/* Datasets & Models */}
+      {/* Tech Stack */}
+      {detail.techStack?.length > 0 && (
+        <div>
+          <SpecHeader title="Tech Stack" />
+          <TagCloud items={detail.techStack} />
+        </div>
+      )}
+
+      {/* Data & Models */}
       {(detail.datasets?.length > 0 || detail.recommendedModels?.length > 0) && (
         <div>
           <SpecHeader title="Data & Models" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
             {detail.datasets?.length > 0 && (
               <div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, textTransform: "uppercase" }}>Datasets</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {detail.datasets.map(d => (
-                    <span key={d} style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#93C5FD", background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)", padding: "4px 10px", borderRadius: 4 }}>
-                      {d}
-                    </span>
-                  ))}
-                </div>
+                <MiniLabel>Datasets</MiniLabel>
+                <TagCloud items={detail.datasets} accent />
               </div>
             )}
             {detail.recommendedModels?.length > 0 && (
               <div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, textTransform: "uppercase" }}>Models</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {detail.recommendedModels.map(m => (
-                    <span key={m} style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#93C5FD", background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)", padding: "4px 10px", borderRadius: 4 }}>
-                      {m}
-                    </span>
-                  ))}
-                </div>
+                <MiniLabel>Models</MiniLabel>
+                <TagCloud items={detail.recommendedModels} accent />
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Deployment & Scaling */}
+      {/* APIs */}
+      {detail.apis?.length > 0 && (
+        <div>
+          <SpecHeader title="APIs & Services" />
+          <TagCloud items={detail.apis} />
+        </div>
+      )}
+
+      {/* Evaluation */}
+      {detail.evaluationMetrics?.length > 0 && (
+        <div>
+          <SpecHeader title="Evaluation Metrics" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {detail.evaluationMetrics.map((m, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 14,
+                  padding: "12px 16px",
+                  background: "var(--surface)",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "var(--r-sm)",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 10,
+                    color: "var(--text-4)",
+                    paddingTop: 2,
+                    flexShrink: 0,
+                  }}
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <TextBlock>{m}</TextBlock>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Deployment */}
       {(detail.deployment || detail.scalingIdeas?.length > 0) && (
         <div>
           <SpecHeader title="Deployment & Scaling" />
           {detail.deployment && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, textTransform: "uppercase" }}>Deployment Strategy</div>
+            <div style={{ marginBottom: 28 }}>
+              <MiniLabel>Strategy</MiniLabel>
               <TextBlock>{detail.deployment}</TextBlock>
             </div>
           )}
           {detail.scalingIdeas?.length > 0 && (
             <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, textTransform: "uppercase" }}>Scaling Ideas</div>
-              <ul style={{ margin: 0, paddingLeft: 20 }}>
+              <MiniLabel>Scaling Ideas</MiniLabel>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {detail.scalingIdeas.map((idea, i) => (
-                  <li key={i} style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "rgba(255,255,255,0.7)", lineHeight: 1.8, marginBottom: 4 }}>
-                    {idea}
-                  </li>
+                  <div
+                    key={i}
+                    style={{
+                      paddingLeft: 16,
+                      borderLeft: "2px solid rgba(59,130,246,0.2)",
+                    }}
+                  >
+                    <TextBlock>{idea}</TextBlock>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
         </div>
       )}
+
+      {/* Required Skills */}
+      {detail.requiredSkills?.length > 0 && (
+        <div>
+          <SpecHeader title="Required Skills" />
+          <TagCloud items={detail.requiredSkills} />
+        </div>
+      )}
+
+      {/* Future */}
+      {detail.futureImprovements?.length > 0 && (
+        <div>
+          <SpecHeader title="Future Improvements" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {detail.futureImprovements.map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 10,
+                    color: "var(--blue)",
+                    paddingTop: 3,
+                    flexShrink: 0,
+                  }}
+                >
+                  →
+                </span>
+                <TextBlock>{item}</TextBlock>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ height: 60 }} />
     </div>
   );
 }

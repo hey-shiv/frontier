@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import type { ProjectDetail, ProjectPreview, GenerateInput } from "../../../shared/types";
-import { downloadMarkdown } from "../../lib/export";
+import { ScoreRing } from "../ui/score-ring";
+import type { ProjectPreview } from "../../../shared/types";
 
 interface Props {
   preview: ProjectPreview;
@@ -9,154 +8,163 @@ interface Props {
   onSelect: () => void;
 }
 
-function easeOutExpo(x: number): number {
-  return x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
-}
-
-function AnimatedScore({ score, color, bg }: { score: number, color: string, bg: string }) {
-  const [displayScore, setDisplayScore] = useState(0);
-
-  useEffect(() => {
-    let start = performance.now();
-    const duration = 400; // ms
-
-    const animate = (time: number) => {
-      let timeFraction = (time - start) / duration;
-      if (timeFraction > 1) timeFraction = 1;
-
-      const progress = easeOutExpo(timeFraction);
-      setDisplayScore(Math.floor(progress * score));
-
-      if (timeFraction < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        setDisplayScore(score);
-      }
-    };
-
-    requestAnimationFrame(animate);
-  }, [score]);
-
-  return (
-    <div style={{
-      fontFamily: "var(--font-mono)",
-      fontSize: 14,
-      fontWeight: 700,
-      color: color,
-      background: bg,
-      padding: "4px 12px",
-      borderRadius: 999,
-      minWidth: 48,
-      textAlign: "center",
-      boxShadow: score >= 80 ? `0 0 0 1px rgba(52,211,153,0.4), 0 0 16px rgba(52,211,153,0.25)` : 
-                 score >= 60 ? `0 0 0 1px rgba(251,191,36,0.4), 0 0 16px rgba(251,191,36,0.25)` :
-                 `0 0 0 1px rgba(248,113,113,0.4), 0 0 16px rgba(248,113,113,0.25)`,
-    }}>
-      {displayScore}
-    </div>
-  );
-}
-
 export function PreviewCard({ preview, index, isSelected, onSelect }: Props) {
-  // Color determination based on score
-  const score = preview.originalityScore;
-  let scoreColor = "#F87171"; // red
-  let scoreBg = "rgba(248,113,113,0.1)";
-  if (score >= 80) {
-    scoreColor = "#34D399"; // green
-    scoreBg = "rgba(52,211,153,0.1)";
-  } else if (score >= 60) {
-    scoreColor = "#FBBF24"; // yellow
-    scoreBg = "rgba(251,191,36,0.1)";
-  }
-
   return (
     <div
       onClick={onSelect}
       style={{
-        width: "min(480px, 85vw)",
-        height: 320,
+        width: "min(520px, 88vw)",
+        height: 340,
         flexShrink: 0,
-        scrollSnapAlign: "start",
-        borderRadius: "var(--radius-card)",
-        background: "rgba(255,255,255,0.03)",
-        border: isSelected ? "1px solid rgba(255,255,255,0.8)" : "1px solid rgba(255,255,255,0.07)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        padding: 28,
+        borderRadius: "var(--r-xl)",
+        background: isSelected
+          ? "rgba(255,255,255,0.04)"
+          : "rgba(255,255,255,0.025)",
+        border: isSelected
+          ? "1px solid rgba(59,130,246,0.4)"
+          : "1px solid rgba(255,255,255,0.06)",
+        backdropFilter: "blur(20px) saturate(160%)",
+        WebkitBackdropFilter: "blur(20px) saturate(160%)",
+        padding: 32,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
         cursor: "pointer",
-        transition: "all 400ms cubic-bezier(0.16, 1, 0.3, 1)",
-        boxShadow: isSelected ? "0 40px 80px rgba(59,130,246,0.15), 0 0 0 1px rgba(59,130,246,0.2)" : "none",
-        transform: "translateY(0)", // Hover translation handled by container
+        transition: "border-color 400ms var(--ease-out), background 400ms var(--ease-out), box-shadow 400ms var(--ease-out)",
+        boxShadow: isSelected
+          ? "0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(59,130,246,0.15), inset 0 1px 0 rgba(255,255,255,0.05)"
+          : "0 8px 32px rgba(0,0,0,0.3)",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
-      <div>
-        <h3 style={{
-          fontFamily: "var(--font-display)",
-          fontWeight: 500,
-          fontSize: 22,
-          color: "#F0F4FF",
-          margin: "0 0 12px",
-          display: "-webkit-box",
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden",
-          lineHeight: 1.3,
-        }}>
+      {/* Subtle inner highlight at top */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 1,
+          background: isSelected
+            ? "linear-gradient(to right, transparent, rgba(59,130,246,0.4), transparent)"
+            : "linear-gradient(to right, transparent, rgba(255,255,255,0.07), transparent)",
+          transition: "all 400ms",
+        }}
+      />
+
+      {/* Content */}
+      <div style={{ position: "relative", zIndex: 1 }}>
+        {/* Index indicator */}
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            color: "var(--text-4)",
+            letterSpacing: "0.12em",
+            marginBottom: 16,
+          }}
+        >
+          {String(index + 1).padStart(2, "0")}
+        </div>
+
+        <h3
+          style={{
+            fontFamily: "var(--font-display)",
+            fontWeight: 500,
+            fontSize: 22,
+            color: "var(--text-1)",
+            margin: "0 0 14px",
+            lineHeight: 1.3,
+            letterSpacing: "-0.01em",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
           {preview.title}
         </h3>
-        <p style={{
-          fontFamily: "var(--font-body)",
-          fontWeight: 400,
-          fontSize: 14,
-          color: "rgba(255,255,255,0.55)",
-          margin: 0,
-          display: "-webkit-box",
-          WebkitLineClamp: 3,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden",
-          lineHeight: 1.6,
-        }}>
+
+        <p
+          style={{
+            fontFamily: "var(--font-body)",
+            fontWeight: 400,
+            fontSize: 14,
+            color: "rgba(255,255,255,0.48)",
+            margin: 0,
+            lineHeight: 1.65,
+            display: "-webkit-box",
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
           {preview.pitch}
         </p>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxWidth: "70%" }}>
-          {preview.tags?.slice(0, 3).map(tag => (
-            <span key={tag} style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              color: "#94A3B8",
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 999,
-              padding: "4px 10px",
-            }}>
+      {/* Bottom row */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        {/* Tags */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, maxWidth: "65%" }}>
+          {preview.tags?.slice(0, 3).map((tag) => (
+            <span
+              key={tag}
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                color: "var(--text-3)",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: "var(--r-pill)",
+                padding: "4px 10px",
+                letterSpacing: "0.04em",
+              }}
+            >
               {tag}
             </span>
           ))}
         </div>
-        
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12 }}>
-          <AnimatedScore score={preview.originalityScore} color={scoreColor} bg={scoreBg} />
 
-          <div style={{
-            opacity: isSelected ? 1 : 0,
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            fontWeight: 400,
-            textTransform: "uppercase",
-            color: "#93C5FD",
-            background: "rgba(59,130,246,0.2)",
-            border: "1px solid rgba(59,130,246,0.4)",
-            borderRadius: 999,
-            padding: "4px 12px",
-            transition: "opacity 400ms cubic-bezier(0.16, 1, 0.3, 1)",
-          }}>
+        {/* Score + View Spec */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: 10,
+          }}
+        >
+          <ScoreRing score={preview.originalityScore} animated={isSelected} />
+
+          <div
+            style={{
+              opacity: isSelected ? 1 : 0,
+              transform: isSelected ? "translateY(0)" : "translateY(4px)",
+              fontFamily: "var(--font-mono)",
+              fontSize: 10,
+              fontWeight: 500,
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+              color: "#93C5FD",
+              background: "rgba(59,130,246,0.12)",
+              border: "1px solid rgba(59,130,246,0.3)",
+              borderRadius: "var(--r-pill)",
+              padding: "4px 12px",
+              transition: "all 300ms var(--ease-out)",
+              whiteSpace: "nowrap",
+            }}
+          >
             VIEW SPEC →
           </div>
         </div>
