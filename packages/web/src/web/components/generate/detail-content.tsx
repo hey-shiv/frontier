@@ -1,71 +1,73 @@
-/**
- * DetailContent — expanded deep-dive panel for a project card.
- * Rendered inside PreviewCard when the user clicks "Deep Dive".
- */
-import {
-  AlertTriangle, Lightbulb, Cpu, Code2, Brain, Layers, Database,
-  Globe, TrendingUp, BookOpen, BarChart3, FlaskConical, Star,
-} from "lucide-react";
-import { SectionHead } from "../ui/section-head";
-import { TagList } from "../ui/tag-list";
 import type { ProjectDetail } from "../../../shared/types";
 
 interface Props {
   detail: ProjectDetail;
 }
 
+function SpecHeader({ title }: { title: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "40px 0 20px" }}>
+      <div style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 11,
+        textTransform: "uppercase",
+        color: "rgba(255,255,255,0.4)",
+      }}>
+        — {title}
+      </div>
+      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
+    </div>
+  );
+}
+
+function CodeBlock({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      fontFamily: "var(--font-mono)",
+      fontSize: 13,
+      color: "#93C5FD",
+      background: "rgba(255,255,255,0.03)",
+      border: "1px solid rgba(255,255,255,0.06)",
+      padding: "16px 20px",
+      borderRadius: 8,
+      lineHeight: 1.6,
+      whiteSpace: "pre-wrap",
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function TextBlock({ children }: { children: React.ReactNode }) {
+  return (
+    <p style={{
+      fontFamily: "var(--font-body)",
+      fontSize: 14,
+      color: "rgba(255,255,255,0.7)",
+      lineHeight: 1.8,
+      margin: 0,
+    }}>
+      {children}
+    </p>
+  );
+}
+
 export function DetailContent({ detail }: Props) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-      {/* Problem + Innovation */}
+    <div style={{ paddingBottom: 100 }}>
+      {/* Overview */}
       {(detail.problemStatement || detail.coreInnovation) && (
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
-          className="detail-grid"
-        >
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           {detail.problemStatement && (
-            <div
-              style={{
-                padding: "14px",
-                borderRadius: 10,
-                background: "rgba(201,79,67,0.04)",
-                border: "1px solid rgba(201,79,67,0.12)",
-              }}
-            >
-              <SectionHead icon={AlertTriangle} label="Problem" color="#C94F43" />
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "var(--text-secondary)",
-                  lineHeight: 1.6,
-                  margin: 0,
-                }}
-              >
-                {detail.problemStatement}
-              </p>
+            <div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, textTransform: "uppercase" }}>Problem</div>
+              <TextBlock>{detail.problemStatement}</TextBlock>
             </div>
           )}
           {detail.coreInnovation && (
-            <div
-              style={{
-                padding: "14px",
-                borderRadius: 10,
-                background: "rgba(91,184,136,0.04)",
-                border: "1px solid rgba(91,184,136,0.15)",
-              }}
-            >
-              <SectionHead icon={Lightbulb} label="Core Innovation" color="#5BB888" />
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "var(--text-secondary)",
-                  lineHeight: 1.6,
-                  margin: 0,
-                }}
-              >
-                {detail.coreInnovation}
-              </p>
+            <div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, textTransform: "uppercase" }}>Core Innovation</div>
+              <TextBlock>{detail.coreInnovation}</TextBlock>
             </div>
           )}
         </div>
@@ -74,193 +76,122 @@ export function DetailContent({ detail }: Props) {
       {/* Architecture */}
       {detail.architecture && (
         <div>
-          <SectionHead icon={Cpu} label="Architecture" color="var(--accent)" />
-          <div
-            style={{
-              padding: "12px 14px",
-              borderRadius: 8,
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid var(--border)",
-              fontFamily: "var(--font-mono)",
-              fontSize: 11.5,
-              color: "var(--text-secondary)",
-              lineHeight: 1.7,
-            }}
-          >
-            {detail.architecture}
-          </div>
+          <SpecHeader title="Architecture" />
+          <CodeBlock>{detail.architecture}</CodeBlock>
         </div>
       )}
 
-      {/* Tech Stack + Skills */}
-      {(detail.techStack?.length > 0 || detail.requiredSkills?.length > 0) && (
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
-          className="detail-grid"
-        >
-          {detail.techStack?.length > 0 && (
-            <div>
-              <SectionHead icon={Code2} label="Tech Stack" />
-              <TagList items={detail.techStack} />
-            </div>
-          )}
-          {detail.requiredSkills?.length > 0 && (
-            <div>
-              <SectionHead icon={Brain} label="Required Skills" />
-              <TagList items={detail.requiredSkills} />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Datasets + Models */}
-      {(detail.datasets?.length > 0 || detail.recommendedModels?.length > 0) && (
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
-          className="detail-grid"
-        >
-          {detail.datasets?.length > 0 && (
-            <div>
-              <SectionHead icon={Database} label="Datasets" />
-              <TagList items={detail.datasets} />
-            </div>
-          )}
-          {detail.recommendedModels?.length > 0 && (
-            <div>
-              <SectionHead icon={Layers} label="Models" />
-              <TagList items={detail.recommendedModels} />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Evaluation metrics */}
-      {detail.evaluationMetrics?.length > 0 && (
-        <div>
-          <SectionHead icon={BarChart3} label="Evaluation Metrics" />
-          <TagList items={detail.evaluationMetrics} />
-        </div>
-      )}
-
-      {/* Roadmap */}
+      {/* Roadmap Timeline */}
       {detail.roadmap?.length > 0 && (
         <div>
-          <SectionHead icon={BookOpen} label="Roadmap" />
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {detail.roadmap.map((step, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <span
-                  style={{
-                    flexShrink: 0,
-                    width: 20,
-                    height: 20,
+          <SpecHeader title="Roadmap" />
+          <div style={{ position: "relative", paddingLeft: 24 }}>
+            {/* Vertical Line */}
+            <div style={{
+              position: "absolute",
+              left: 2,
+              top: 8,
+              bottom: 8,
+              width: 2,
+              background: "rgba(59,130,246,0.2)",
+            }} />
+            
+            {detail.roadmap.map((step, i) => {
+              // Extremely simple heuristic to split out a date/phase label from description if it exists
+              // Example: "Week 1-2: Setup environment" -> label: "Week 1-2", desc: "Setup environment"
+              const splitIdx = step.indexOf(":");
+              let label = `Phase ${i + 1}`;
+              let desc = step;
+              if (splitIdx > 0 && splitIdx < 30) {
+                label = step.substring(0, splitIdx).trim();
+                desc = step.substring(splitIdx + 1).trim();
+              }
+
+              return (
+                <div key={i} style={{ position: "relative", marginBottom: 32 }}>
+                  {/* Dot */}
+                  <div style={{
+                    position: "absolute",
+                    left: -25, // -24px padding + 2px line offset - 3px radius
+                    top: 6,
+                    width: 6,
+                    height: 6,
                     borderRadius: "50%",
-                    background: "var(--accent-soft)",
-                    border: "1px solid var(--accent-border)",
-                    color: "var(--accent)",
-                    fontSize: 9,
-                    fontWeight: 700,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    background: "#3B82F6",
+                    boxShadow: "0 0 8px rgba(59,130,246,0.6)",
+                  }} />
+                  
+                  <div style={{
                     fontFamily: "var(--font-mono)",
-                    marginTop: 1,
-                  }}
-                >
-                  {i + 1}
-                </span>
-                <span
-                  style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}
-                >
-                  {step}
-                </span>
-              </div>
-            ))}
+                    fontSize: 11,
+                    color: "rgba(255,255,255,0.4)",
+                    marginBottom: 4,
+                  }}>
+                    {label}
+                  </div>
+                  <TextBlock>{desc}</TextBlock>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Deployment + Scaling */}
+      {/* Datasets & Models */}
+      {(detail.datasets?.length > 0 || detail.recommendedModels?.length > 0) && (
+        <div>
+          <SpecHeader title="Data & Models" />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+            {detail.datasets?.length > 0 && (
+              <div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, textTransform: "uppercase" }}>Datasets</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {detail.datasets.map(d => (
+                    <span key={d} style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#93C5FD", background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)", padding: "4px 10px", borderRadius: 4 }}>
+                      {d}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {detail.recommendedModels?.length > 0 && (
+              <div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, textTransform: "uppercase" }}>Models</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {detail.recommendedModels.map(m => (
+                    <span key={m} style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "#93C5FD", background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.2)", padding: "4px 10px", borderRadius: 4 }}>
+                      {m}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Deployment & Scaling */}
       {(detail.deployment || detail.scalingIdeas?.length > 0) && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              detail.deployment && detail.scalingIdeas?.length ? "1fr 1fr" : "1fr",
-            gap: 12,
-          }}
-          className="detail-grid"
-        >
+        <div>
+          <SpecHeader title="Deployment & Scaling" />
           {detail.deployment && (
-            <div>
-              <SectionHead icon={Globe} label="Deployment" />
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "var(--text-secondary)",
-                  lineHeight: 1.6,
-                  margin: 0,
-                }}
-              >
-                {detail.deployment}
-              </p>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, textTransform: "uppercase" }}>Deployment Strategy</div>
+              <TextBlock>{detail.deployment}</TextBlock>
             </div>
           )}
           {detail.scalingIdeas?.length > 0 && (
             <div>
-              <SectionHead icon={TrendingUp} label="Scaling Ideas" />
-              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, textTransform: "uppercase" }}>Scaling Ideas</div>
+              <ul style={{ margin: 0, paddingLeft: 20 }}>
                 {detail.scalingIdeas.map((idea, i) => (
-                  <div key={i} style={{ display: "flex", gap: 7, alignItems: "flex-start" }}>
-                    <span style={{ color: "var(--accent)", fontSize: 12, marginTop: 1 }}>
-                      →
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        color: "var(--text-secondary)",
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {idea}
-                    </span>
-                  </div>
+                  <li key={i} style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "rgba(255,255,255,0.7)", lineHeight: 1.8, marginBottom: 4 }}>
+                    {idea}
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Future improvements */}
-      {detail.futureImprovements?.length > 0 && (
-        <div>
-          <SectionHead icon={FlaskConical} label="Future Research Directions" />
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {detail.futureImprovements.map((item, i) => (
-              <span
-                key={i}
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: 6,
-                  fontSize: 11,
-                  background: "rgba(91,137,168,0.08)",
-                  border: "1px solid rgba(91,137,168,0.2)",
-                  color: "#7CA8C8",
-                }}
-              >
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Target companies */}
-      {detail.targetCompanies?.length > 0 && (
-        <div>
-          <SectionHead icon={Star} label="Target Companies" />
-          <TagList items={detail.targetCompanies} />
         </div>
       )}
     </div>

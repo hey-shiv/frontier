@@ -1,24 +1,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bookmark, Trash2, Clock, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { getSessionId } from "../lib/session";
 import type { SavedProject } from "../../shared/types";
-import { DetailContent } from "../components/generate/detail-content";
-import { downloadMarkdown } from "../lib/export";
+import { SectionLabel } from "../components/section-label";
+import { useScrollReveal } from "../hooks/use-scroll-reveal";
 
 export default function SavedPage() {
   const sessionId = getSessionId();
   const queryClient = useQueryClient();
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-
-  const toggleExpand = (id: number) => {
-    setExpandedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  const revealRef = useScrollReveal();
 
   const { data, isLoading } = useQuery({
     queryKey: ["saved-projects", sessionId],
@@ -46,308 +36,163 @@ export default function SavedPage() {
 
   const projects: SavedProject[] = data?.projects ?? [];
 
-  return (
-    <div style={{ minHeight: "100vh", paddingTop: 58, background: "var(--bg)" }}>
-      {/* Header */}
-      <div
-        className="grid-texture"
-        style={{
-          padding: "60px 24px 48px",
-          textAlign: "center",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 600,
-            height: 240,
-            background: "radial-gradient(ellipse at bottom, rgba(59, 130, 246, 0.13) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "5px 14px",
-            borderRadius: 999,
-            background: "var(--accent-soft)",
-            border: "1px solid var(--accent-border)",
-            fontSize: 12,
-            color: "var(--accent-light)",
-            fontWeight: 600,
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            marginBottom: 20,
-          }}
-        >
-          <span className="live-dot" />
-          <Bookmark size={11} color="var(--accent)" />
-          Saved Projects
+  if (isLoading) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: 48, fontWeight: 300, color: "rgba(255,255,255,0.15)" }}>
+          Loading library...
         </div>
-        <h1
-          className="font-display"
-          style={{
-            fontSize: "clamp(28px, 5vw, 48px)",
-            fontWeight: 800,
-            letterSpacing: "-0.03em",
-            color: "var(--text-primary)",
-            margin: "0 0 14px",
-          }}
-        >
-          Your <span className="gradient-text">Project Library</span>
-        </h1>
-        <p style={{ fontSize: 16, color: "var(--text-secondary)", maxWidth: 440, margin: "0 auto" }}>
-          Projects you've bookmarked for building
-        </p>
+      </div>
+    );
+  }
+
+  if (projects.length === 0) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: 48, fontWeight: 300, color: "rgba(255,255,255,0.15)" }}>
+          Your library awaits.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ paddingTop: 120, paddingBottom: 100 }}>
+      <div style={{ maxWidth: "80rem", margin: "0 auto", paddingLeft: 24, paddingRight: 24, marginBottom: 24 }}>
+        <SectionLabel label="SAVED LIBRARY" />
       </div>
 
-      <div
+      <div 
+        ref={revealRef}
         style={{
-          maxWidth: 1000,
-          margin: "0 auto",
-          padding: "40px 24px 80px",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gap: 1, // Flush grid illusion
+          background: "#000", // Black gap
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
         }}
       >
-        {isLoading ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="glass shimmer" style={{ borderRadius: 16, height: 140 }} />
-            ))}
-          </div>
-        ) : projects.length === 0 ? (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "80px 24px",
-            }}
-          >
+        {projects.map((project) => {
+          let scoreColor = "#F87171";
+          let scoreBg = "rgba(248,113,113,0.1)";
+          if (project.originalityScore >= 80) {
+            scoreColor = "#34D399";
+            scoreBg = "rgba(52,211,153,0.1)";
+          } else if (project.originalityScore >= 60) {
+            scoreColor = "#FBBF24";
+            scoreBg = "rgba(251,191,36,0.1)";
+          }
+
+          return (
             <div
+              key={project.id}
               style={{
-                width: 64,
-                height: 64,
-                borderRadius: 16,
-                background: "var(--accent-soft)",
-                border: "1px solid var(--accent-border)",
+                background: "rgba(255,255,255,0.02)",
+                padding: 24,
+                position: "relative",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 20px",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                height: 220,
+                transition: "background 200ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                const btn = e.currentTarget.querySelector('.del-btn') as HTMLElement;
+                if (btn) btn.style.opacity = "1";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.02)";
+                const btn = e.currentTarget.querySelector('.del-btn') as HTMLElement;
+                if (btn) btn.style.opacity = "0";
               }}
             >
-              <Bookmark size={28} color="var(--accent)" />
-            </div>
-            <h3
-              className="font-display"
-              style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 8px" }}
-            >
-              No saved projects yet
-            </h3>
-            <p style={{ fontSize: 14, color: "var(--text-secondary)", margin: 0 }}>
-              Generate project ideas and bookmark the ones you want to build
-            </p>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <p style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 4 }}>
-              {projects.length} saved project{projects.length !== 1 ? "s" : ""}
-            </p>
-            {projects.map((project, i) => {
-              const orgColor =
-                project.originalityScore >= 85 ? "#10B981" :
-                project.originalityScore >= 70 ? "#F59E0B" : "#EF4444";
+              {/* Year saved */}
+              <div style={{
+                position: "absolute",
+                top: 16,
+                right: 16,
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                color: "rgba(255,255,255,0.3)",
+              }}>
+                {new Date(project.createdAt).getFullYear()}
+              </div>
 
-              // targetCompanies is already an array — server pre-parses JSON columns
-              const targetCompanies: string[] = Array.isArray(project.targetCompanies)
-                ? project.targetCompanies
-                : [];
-
-              return (
-                <div
-                  key={project.id}
-                  className="glass glass-hover"
-                  style={{
-                    borderRadius: 18,
-                    padding: "24px",
-                    opacity: 0,
-                    animation: `fadeUp 0.4s ease forwards`,
-                    animationDelay: `${i * 60}ms`,
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap", alignItems: "center" }}>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: orgColor,
-                            background: `${orgColor}15`,
-                            border: `1px solid ${orgColor}30`,
-                            padding: "2px 8px",
-                            borderRadius: 999,
-                            fontFamily: "var(--font-mono)",
-                          }}
-                        >
-                          {project.originalityScore}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            color: "var(--text-muted)",
-                            background: "rgba(255,255,255,0.03)",
-                            border: "1px solid var(--border)",
-                            padding: "2px 8px",
-                            borderRadius: 999,
-                          }}
-                        >
-                          {project.difficulty}
-                        </span>
-                      </div>
-                      <h3
-                        className="font-display"
-                        style={{
-                          fontSize: 17,
-                          fontWeight: 700,
-                          color: "var(--text-primary)",
-                          margin: "0 0 6px",
-                          letterSpacing: "-0.01em",
-                        }}
-                      >
-                        {project.title}
-                      </h3>
-                      <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 12px", lineHeight: 1.5 }}>
-                        {project.pitch}
-                      </p>
-                      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-                          <Clock size={11} />
-                          {project.timeEstimate}
-                        </span>
-                        {targetCompanies.slice(0, 2).map((co) => (
-                          <span
-                            key={co}
-                            style={{
-                              fontSize: 11,
-                              color: "var(--accent-light)",
-                              background: "var(--accent-soft)",
-                              border: "1px solid var(--accent-border)",
-                              padding: "2px 8px",
-                              borderRadius: 999,
-                            }}
-                          >
-                            {co}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                      <button
-                        onClick={() => downloadMarkdown(project as any)}
-                        style={{
-                          background: "none",
-                          border: "1px solid var(--border)",
-                          borderRadius: 8,
-                          cursor: "pointer",
-                          color: "var(--text-muted)",
-                          padding: 8,
-                          display: "flex",
-                          transition: "all 0.15s ease",
-                        }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--accent-light)";
-                          (e.currentTarget as HTMLButtonElement).style.color = "var(--accent-light)";
-                          (e.currentTarget as HTMLButtonElement).style.background = "var(--accent-soft)";
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
-                          (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-                          (e.currentTarget as HTMLButtonElement).style.background = "none";
-                        }}
-                        title="Download Markdown"
-                      >
-                        <Download size={15} />
-                      </button>
-                      <button
-                        onClick={() => deleteMutation.mutate(project.id)}
-                        disabled={deleteMutation.isPending}
-                        style={{
-                          background: "none",
-                          border: "1px solid var(--border)",
-                          borderRadius: 8,
-                          cursor: "pointer",
-                          color: "var(--text-muted)",
-                          padding: 8,
-                          display: "flex",
-                          transition: "all 0.15s ease",
-                        }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.borderColor = "#EF4444";
-                          (e.currentTarget as HTMLButtonElement).style.color = "#EF4444";
-                          (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.1)";
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
-                          (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-                          (e.currentTarget as HTMLButtonElement).style.background = "none";
-                        }}
-                        title="Delete project"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => toggleExpand(project.id)}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 7,
-                      padding: "11px 0",
-                      marginTop: 16,
-                      border: "none",
-                      borderTop: "1px solid var(--border)",
-                      background: "transparent",
-                      color: "var(--text-muted)",
-                      cursor: "pointer",
-                      fontSize: 12,
-                      fontWeight: 600,
+              {/* Title & Tags */}
+              <div>
+                <h3 style={{
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 500,
+                  fontSize: 18,
+                  color: "#F0F4FF",
+                  margin: "0 0 12px",
+                  paddingRight: 32, // space for date
+                  display: "-webkit-box",
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  lineHeight: 1.3,
+                }}>
+                  {project.title}
+                </h3>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {project.tags?.slice(0, 3).map(tag => (
+                    <span key={tag} style={{
                       fontFamily: "var(--font-mono)",
-                      letterSpacing: "0.04em",
-                      transition: "color 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
-                  >
-                    {expandedIds.has(project.id) ? (
-                      <><ChevronUp size={13} /> HIDE BLUEPRINT</>
-                    ) : (
-                      <><ChevronDown size={13} /> VIEW FULL BLUEPRINT</>
-                    )}
-                  </button>
-
-                  {expandedIds.has(project.id) && (
-                    <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)", animation: "fadeIn 0.3s ease forwards" }}>
-                      <DetailContent detail={project as any} />
-                    </div>
-                  )}
+                      fontSize: 10,
+                      color: "#94A3B8",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: 999,
+                      padding: "2px 8px",
+                    }}>
+                      {tag}
+                    </span>
+                  ))}
                 </div>
-              );
-            })}
-          </div>
-        )}
+              </div>
+
+              {/* Score & Delete */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: scoreColor,
+                  background: scoreBg,
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                }}>
+                  {project.originalityScore}
+                </div>
+                
+                <button
+                  className="del-btn"
+                  onClick={() => deleteMutation.mutate(project.id)}
+                  disabled={deleteMutation.isPending}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 16,
+                    color: "rgba(255,255,255,0.3)",
+                    cursor: "pointer",
+                    opacity: 0,
+                    transition: "all 150ms ease",
+                    padding: "4px 8px",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = "#F87171"}
+                  onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.3)"}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
-

@@ -1,432 +1,238 @@
-import { Link } from "wouter";
-import { ArrowRight, Sparkles, Building2, TrendingUp, Map, Zap, Target, Brain, Code2, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { useScrollReveal } from "../hooks/use-scroll-reveal";
+import { SectionLabel } from "../components/section-label";
 
-const features = [
-  {
-    icon: Sparkles,
-    title: "AI Project Generator",
-    description: "Select your domains and interests. Get frontier-level project ideas personalized to your goals and target companies.",
-    tag: "Core Feature",
-  },
-  {
-    icon: Building2,
-    title: "Company Intelligence",
-    description: "Deep profiles of top AI companies — research directions, tech stacks, and open roles you should be targeting.",
-    tag: "Research",
-  },
-  {
-    icon: TrendingUp,
-    title: "Research Trends",
-    description: "Stay ahead with live intelligence on trending papers, frameworks, and emerging AI technologies.",
-    tag: "Live Data",
-  },
-  {
-    icon: Map,
-    title: "Career Roadmaps",
-    description: "Step-by-step paths to ML Engineer, AI Researcher, or Startup Founder — with resources and milestones.",
-    tag: "Guidance",
-  },
+const AI_DOMAINS = [
+  "LLMs", "Agentic AI", "Generative AI", "RAG Systems", "Computer Vision", "NLP",
+  "Robotics", "Voice AI", "Audio AI", "Music AI", "Recommendation Systems",
+  "AI for Finance", "Autonomous Systems", "Edge AI", "Multimodal AI", 
+  "Diffusion Models", "Time Series AI", "Healthcare AI", "AI Tooling"
 ];
 
-const steps = [
-  {
-    step: "01",
-    icon: Target,
-    title: "Build Your Profile",
-    desc: "Pick AI domains, personal interests, target companies, and your experience level.",
-  },
-  {
-    step: "02",
-    icon: Brain,
-    title: "AI Generates Ideas",
-    desc: "Our engine fuses your selections with live research trends and company intelligence.",
-  },
-  {
-    step: "03",
-    icon: Code2,
-    title: "Ship Your Project",
-    desc: "Full specs — architecture, datasets, APIs, deployment, and implementation roadmap.",
-  },
+const PERSONAL_INTERESTS = [
+  "Music", "Sports", "Movies", "Reading", "Gaming", "Trading",
+  "Startups", "Education", "Fitness", "Fashion", "Content Creation",
+  "Science", "Space", "Biology", "Finance", "Photography"
 ];
 
-const stats = [
-  { value: "50+", label: "AI Companies" },
-  { value: "4s", label: "Avg generation" },
-  { value: "100+", label: "Project templates" },
-  { value: "Free", label: "Always" },
+const COMPANIES = [
+  "OpenAI", "DeepMind", "Anthropic", "Suno", "ElevenLabs",
+  "Perplexity", "Mistral", "HuggingFace", "Meta AI", "NVIDIA"
 ];
 
-export default function LandingPage() {
+const EXPERIENCE_LEVELS = ["Beginner", "Intermediate", "Advanced", "Researcher"];
+const GOALS = ["Internship", "Research", "Startup", "Open Source"];
+const TIME_OPTIONS = ["1 week", "1 month", "3 months", "6 months"];
+
+// ─── Reusable Chip Group ──────────────────────────────────────────────────────
+
+function ChipGroup({ 
+  label, 
+  items, 
+  selected, 
+  onToggle, 
+  multi = true 
+}: { 
+  label: string; 
+  items: string[]; 
+  selected: string[]; 
+  onToggle: (item: string) => void; 
+  multi?: boolean;
+}) {
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-
-      {/* ── Hero ── */}
-      <section style={{
-        position: "relative",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-        paddingTop: 58,
-      }}>
-
-        {/* Grid */}
-        <div className="grid-texture" style={{ position: "absolute", inset: 0, pointerEvents: "none", opacity: 0.5 }} />
-
-        {/* Bottom warm glow */}
-        <div style={{
-          position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)",
-          width: "90%", height: 380,
-          background: "radial-gradient(ellipse 60% 100% at 50% 100%, rgba(201,79,67,0.16) 0%, rgba(150,50,42,0.05) 55%, transparent 100%)",
-          pointerEvents: "none",
-        }} />
-
-        {/* Ambient center orb */}
-        <div className="orb pulse-glow" style={{
-          position: "absolute", top: "8%", left: "50%", transform: "translateX(-50%)",
-          width: 500, height: 360,
-          background: "radial-gradient(circle, rgba(201,79,67,0.055) 0%, transparent 70%)",
-        }} />
-
-        <div style={{ position: "relative", zIndex: 1, textAlign: "center", maxWidth: 820, padding: "0 28px" }}>
-
-          {/* Badge */}
-          <div className="fade-up section-label" style={{ display: "inline-flex" }}>
-            <span className="live-dot" />
-            AI Career Intelligence Platform
-          </div>
-
-          {/* Headline */}
-          <h1
-            className="font-display fade-up delay-100"
-            style={{
-              fontSize: "clamp(46px, 7.5vw, 88px)",
-              fontWeight: 800,
-              lineHeight: 1.0,
-              letterSpacing: "-0.04em",
-              color: "var(--text-primary)",
-              margin: "0 0 28px",
-            }}
-          >
-            Build Projects{" "}
-            <span className="serif-italic" style={{ fontWeight: 400, letterSpacing: "-0.02em" }}>Frontier</span>
-            <br />
-            AI Labs{" "}
-            <span className="serif-gradient">Actually Want</span>
-          </h1>
-
-          <p
-            className="fade-up delay-200"
-            style={{
-              fontSize: "clamp(15px, 1.6vw, 18px)",
-              color: "var(--text-secondary)",
-              lineHeight: 1.8,
-              margin: "0 auto 48px",
-              maxWidth: 520,
-              fontWeight: 400,
-            }}
-          >
-            Personalized AI project recommendations powered by live research trends,
-            company intelligence, and your personal interests.
-          </p>
-
-          {/* CTAs */}
-          <div className="fade-up delay-300" style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link to="/generate" style={{ textDecoration: "none" }}>
-              <button className="btn-accent" style={{
-                display: "flex", alignItems: "center", gap: 9,
-                padding: "13px 28px", borderRadius: 9, fontSize: 14, fontWeight: 600,
-              }}>
-                Generate My Projects
-                <ArrowRight size={15} />
-              </button>
-            </Link>
-            <Link to="/companies" style={{ textDecoration: "none" }}>
-              <button className="btn-ghost" style={{
-                display: "flex", alignItems: "center", gap: 9,
-                padding: "13px 28px", borderRadius: 9, fontSize: 14,
-              }}>
-                <Building2 size={14} />
-                Explore Companies
-              </button>
-            </Link>
-          </div>
-
-          {/* Stats row */}
-          <div className="fade-up delay-400" style={{
-            display: "flex", gap: 0, justifyContent: "center", marginTop: 64,
-            borderTop: "1px solid var(--border)", paddingTop: 40,
-          }}>
-            {stats.map((s, i) => (
-              <div key={s.label} style={{
-                padding: "0 36px",
-                borderRight: i < stats.length - 1 ? "1px solid var(--border)" : "none",
-                textAlign: "center",
-              }}>
-                <div className="font-display" style={{
-                  fontSize: "clamp(22px, 3vw, 30px)", fontWeight: 800,
-                  letterSpacing: "-0.03em", color: "var(--text-primary)", lineHeight: 1,
-                  marginBottom: 6,
-                }}>
-                  {s.value}
-                </div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", fontFamily: "var(--font-mono)" }}>
-                  {s.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Scroll cue */}
-        <div className="fade-up delay-600" style={{
-          position: "absolute", bottom: 32, left: "50%", transform: "translateX(-50%)",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 8, opacity: 0.25,
-        }}>
-          <span style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-            scroll
-          </span>
-          <ChevronDown size={13} color="var(--text-muted)" />
-        </div>
-      </section>
-
-      {/* ── How It Works ── */}
-      <section style={{ padding: "var(--section-gap) 24px", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ maxWidth: 520, marginBottom: 72 }}>
-          <div className="section-label" style={{ display: "inline-flex" }}>
-            <span className="live-dot" />
-            Process
-          </div>
-          <h2 className="font-display" style={{
-            fontSize: "clamp(30px, 4vw, 52px)", fontWeight: 800,
-            letterSpacing: "-0.035em", lineHeight: 1.05, margin: "0 0 20px",
-          }}>
-            From interests to{" "}
-            <span className="serif-italic" style={{ fontWeight: 400 }}>frontier</span>
-            <br />
-            projects.
-          </h2>
-          <p className="prose">
-            Three steps to discover your next recruiter-impressive AI project.
-          </p>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 0, borderLeft: "1px solid var(--border)" }} className="steps-grid">
-          {steps.map((step, idx) => (
-            <div key={step.step} style={{
-              padding: "44px 40px",
-              borderTop: "1px solid var(--border)",
-              borderRight: "1px solid var(--border)",
-              borderBottom: "1px solid var(--border)",
-              position: "relative",
-              transition: "background 0.22s ease",
-            }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.012)"}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "transparent"}
+    <div style={{ marginBottom: 40 }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textTransform: "uppercase", color: "rgba(255,255,255,0.35)", marginBottom: 16 }}>
+        {label}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {items.map(item => {
+          const isSelected = selected.includes(item);
+          return (
+            <button
+              key={item}
+              onClick={() => onToggle(item)}
+              style={{
+                borderRadius: 999,
+                fontSize: 13,
+                fontFamily: "var(--font-body)",
+                padding: "6px 14px",
+                border: isSelected ? "1px solid rgba(59,130,246,0.5)" : "1px solid rgba(255,255,255,0.08)",
+                background: isSelected ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.04)",
+                color: isSelected ? "#93C5FD" : "var(--text-secondary)",
+                boxShadow: isSelected ? "0 0 12px rgba(59,130,246,0.2)" : "none",
+                cursor: "pointer",
+                transition: "all 150ms ease",
+              }}
+              onPointerDown={(e) => (e.currentTarget.style.transform = "scale(0.95)")}
+              onPointerUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+              onPointerLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
             >
-              <div style={{
-                fontSize: 11, fontWeight: 500, color: "var(--accent)",
-                fontFamily: "var(--font-mono)", marginBottom: 32,
-                letterSpacing: "0.06em",
-              }}>
-                {step.step}
-              </div>
-              <div style={{
-                width: 36, height: 36, borderRadius: 8,
-                background: "rgba(201,79,67,0.08)", border: "1px solid rgba(201,79,67,0.16)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                marginBottom: 20,
-              }}>
-                <step.icon size={16} color="var(--accent)" />
-              </div>
-              <h3 className="font-display" style={{
-                fontSize: 18, fontWeight: 700, letterSpacing: "-0.02em",
-                margin: "0 0 12px", lineHeight: 1.2,
-              }}>
-                {step.title}
-              </h3>
-              <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.7, margin: 0 }}>
-                {step.desc}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section style={{ padding: "0 24px var(--section-gap)", maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 24, marginBottom: 64 }}>
-          <div style={{ maxWidth: 480 }}>
-            <div className="section-label" style={{ display: "inline-flex" }}>
-              <span className="live-dot" />
-              Features
-            </div>
-            <h2 className="font-display" style={{
-              fontSize: "clamp(28px, 4vw, 52px)", fontWeight: 800,
-              letterSpacing: "-0.035em", lineHeight: 1.05, margin: "0 0 16px",
-            }}>
-              Everything to{" "}
-              <span className="serif-gradient">stand out.</span>
-            </h2>
-            <p className="prose">
-              The complete career intelligence platform for AI engineers and researchers.
-            </p>
-          </div>
-          <Link to="/generate" style={{ textDecoration: "none" }}>
-            <button className="btn-ghost" style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "11px 22px", borderRadius: 8, fontSize: 13,
-            }}>
-              Get started
-              <ArrowRight size={13} />
+              {item}
             </button>
-          </Link>
-        </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 1, background: "var(--border)" }} className="features-grid">
-          {features.map((f) => (
-            <div key={f.title} className="card-hover" style={{
-              padding: "40px 36px",
-              background: "var(--bg-2)",
-              cursor: "default",
-              border: "none",
-            }}>
-              <div style={{
-                fontSize: 10, fontWeight: 500, color: "var(--accent)",
-                letterSpacing: "0.1em", textTransform: "uppercase",
-                marginBottom: 20, fontFamily: "var(--font-mono)",
-              }}>
-                {f.tag}
-              </div>
-              <div style={{
-                width: 38, height: 38, borderRadius: 8,
-                background: "rgba(201,79,67,0.07)", border: "1px solid rgba(201,79,67,0.14)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                marginBottom: 20,
-              }}>
-                <f.icon size={17} color="var(--accent)" />
-              </div>
-              <h3 className="font-display" style={{
-                fontSize: 17, fontWeight: 700, letterSpacing: "-0.02em",
-                margin: "0 0 10px",
-              }}>
-                {f.title}
-              </h3>
-              <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.7, margin: 0 }}>
-                {f.description}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
+// ─── Main Page ───────────────────────────────────────────────────────────────
 
-      {/* ── CTA ── */}
-      <section style={{ padding: "0 24px var(--section-gap)", position: "relative", overflow: "hidden" }}>
-        <div style={{
-          position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)",
-          width: "100%", height: 500,
-          background: "radial-gradient(ellipse 50% 80% at 50% 100%, rgba(201,79,67,0.15) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }} />
+export default function IndexPage() {
+  const [, setLocation] = useLocation();
+  const revealRef = useScrollReveal();
 
-        <div style={{
-          maxWidth: 900, margin: "0 auto",
-          padding: "80px 60px",
-          borderRadius: 18,
-          border: "1px solid rgba(201,79,67,0.16)",
-          background: "linear-gradient(160deg, rgba(201,79,67,0.055) 0%, transparent 60%)",
-          position: "relative", overflow: "hidden",
-          textAlign: "center",
+  // We lift the state out to generate.tsx later via router state, 
+  // but for the visual redesign, we'll keep state here and pass it via URL state.
+  const [domains, setDomains] = useState<string[]>([]);
+  const [interests, setInterests] = useState<string[]>([]);
+  const [companies, setCompanies] = useState<string[]>([]);
+  const [experience, setExperience] = useState<string[]>(["Intermediate"]);
+  const [goal, setGoal] = useState<string[]>(["Startup"]);
+  const [time, setTime] = useState<string[]>(["3 months"]);
+
+  const toggleMulti = (list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>) => (item: string) => {
+    setList(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
+  };
+
+  const toggleSingle = (setList: React.Dispatch<React.SetStateAction<string[]>>) => (item: string) => {
+    setList([item]);
+  };
+
+  const handleGenerate = () => {
+    if (domains.length === 0) return;
+    // Build query params
+    const q = new URLSearchParams();
+    domains.forEach(d => q.append("d", d));
+    interests.forEach(i => q.append("i", i));
+    companies.forEach(c => q.append("c", c));
+    q.set("e", experience[0]);
+    q.set("g", goal[0]);
+    q.set("t", time[0]);
+    
+    setLocation(`/generate?${q.toString()}`);
+  };
+
+  return (
+    <div style={{ paddingTop: 140, paddingBottom: 100, maxWidth: "80rem", margin: "0 auto", paddingLeft: 24, paddingRight: 24 }}>
+      
+      {/* Hero */}
+      <div style={{ marginBottom: 100 }}>
+        <h1 style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 300,
+          fontSize: "clamp(56px, 8vw, 100px)",
+          color: "#F0F4FF",
+          lineHeight: 1.0,
+          letterSpacing: "-0.01em",
+          margin: "0 0 24px",
         }}>
-          {/* Ambient orb */}
-          <div className="orb" style={{
-            position: "absolute", top: -80, right: -80,
-            width: 280, height: 280,
-            background: "radial-gradient(circle, rgba(201,79,67,0.18) 0%, transparent 70%)",
-          }} />
-
-          <div className="section-label" style={{ display: "inline-flex", marginBottom: 28 }}>
-            <span className="live-dot" />
-            Get started
-          </div>
-
-          <h2 className="font-display" style={{
-            fontSize: "clamp(32px, 5vw, 60px)", fontWeight: 800,
-            letterSpacing: "-0.04em", lineHeight: 1.0,
-            margin: "0 0 8px",
-          }}>
-            Take the next step
-          </h2>
-          <h2 className="font-display" style={{
-            fontSize: "clamp(32px, 5vw, 60px)", fontWeight: 800,
-            letterSpacing: "-0.04em", lineHeight: 1.0,
-            margin: "0 0 24px",
-          }}>
-            <span className="serif-gradient">today.</span>
-          </h2>
-
-          <p style={{
-            fontSize: "clamp(14px, 1.5vw, 16px)",
-            color: "var(--text-secondary)", lineHeight: 1.8,
-            margin: "0 auto 40px", maxWidth: 440,
-          }}>
-            Build projects that get noticed at OpenAI, DeepMind,
-            Anthropic, and beyond.
-          </p>
-
-          <div style={{ display: "flex", gap: 20, justifyContent: "center", flexWrap: "wrap", marginBottom: 40 }}>
-            {["Research-Grade Projects", "Company Intelligence", "Live Trends"].map(item => (
-              <div key={item} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-secondary)" }}>
-                <span style={{
-                  width: 15, height: 15, borderRadius: "50%",
-                  background: "rgba(201,79,67,0.12)", border: "1px solid rgba(201,79,67,0.3)",
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <span style={{ width: 4, height: 4, borderRadius: "50%", background: "var(--accent)", display: "block" }} />
-                </span>
-                {item}
-              </div>
-            ))}
-          </div>
-
-          <Link to="/generate" style={{ textDecoration: "none" }}>
-            <button className="btn-accent" style={{
-              display: "inline-flex", alignItems: "center", gap: 9,
-              padding: "14px 32px", borderRadius: 9, fontSize: 14, fontWeight: 600,
-            }}>
-              Generate My Projects
-              <ArrowRight size={14} />
-            </button>
-          </Link>
+          Turn Intent Into<br />Specification.
+        </h1>
+        <div style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 12,
+          textTransform: "uppercase",
+          color: "rgba(255,255,255,0.35)",
+        }}>
+          AI Career Intelligence Engine
         </div>
-      </section>
+      </div>
 
-      {/* Footer */}
-      <footer style={{ borderTop: "1px solid var(--border)", padding: "32px 28px" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: 6, background: "var(--accent)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <Sparkles size={11} color="white" />
-            </div>
-            <span className="font-display" style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.02em" }}>Frontier</span>
+      {/* Configuration Form */}
+      <div ref={revealRef}>
+        <SectionLabel label="GENERATE" />
+        
+        <div style={{ maxWidth: 800 }}>
+          <ChipGroup 
+            label="1. Target Domains" 
+            items={AI_DOMAINS} 
+            selected={domains} 
+            onToggle={toggleMulti(domains, setDomains)} 
+          />
+          <ChipGroup 
+            label="2. Context & Interests" 
+            items={PERSONAL_INTERESTS} 
+            selected={interests} 
+            onToggle={toggleMulti(interests, setInterests)} 
+          />
+          <ChipGroup 
+            label="3. Ideal Companies" 
+            items={COMPANIES} 
+            selected={companies} 
+            onToggle={toggleMulti(companies, setCompanies)} 
+          />
+          
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 24 }}>
+            <ChipGroup 
+              label="Experience" 
+              items={EXPERIENCE_LEVELS} 
+              selected={experience} 
+              onToggle={toggleSingle(setExperience)} 
+              multi={false}
+            />
+            <ChipGroup 
+              label="Goal" 
+              items={GOALS} 
+              selected={goal} 
+              onToggle={toggleSingle(setGoal)} 
+              multi={false}
+            />
+            <ChipGroup 
+              label="Timeline" 
+              items={TIME_OPTIONS} 
+              selected={time} 
+              onToggle={toggleSingle(setTime)} 
+              multi={false}
+            />
           </div>
-          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
-            AI Career Intelligence Platform · Built for frontier engineers
-          </p>
-        </div>
-      </footer>
 
-      <style>{`
-        @media (max-width: 768px) {
-          .steps-grid { grid-template-columns: 1fr !important; }
-          .features-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
+          <button
+            onClick={handleGenerate}
+            disabled={domains.length === 0}
+            style={{
+              width: "100%",
+              height: 52,
+              background: domains.length === 0 ? "rgba(255,255,255,0.05)" : "linear-gradient(135deg, #3B82F6, #6366F1)",
+              borderRadius: 8,
+              fontFamily: "var(--font-display)",
+              fontWeight: 500,
+              fontSize: 15,
+              color: domains.length === 0 ? "rgba(255,255,255,0.3)" : "#FFFFFF",
+              letterSpacing: "0.02em",
+              textTransform: "uppercase",
+              border: "none",
+              cursor: domains.length === 0 ? "not-allowed" : "pointer",
+              transition: "all 200ms var(--ease-out)",
+              marginTop: 20,
+            }}
+            onMouseEnter={(e) => {
+              if (domains.length > 0) {
+                e.currentTarget.style.boxShadow = "0 0 32px rgba(99,102,241,0.4)";
+                e.currentTarget.style.filter = "brightness(1.08)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (domains.length > 0) {
+                e.currentTarget.style.boxShadow = "none";
+                e.currentTarget.style.filter = "brightness(1)";
+              }
+            }}
+            onPointerDown={(e) => {
+              if (domains.length > 0) e.currentTarget.style.transform = "scale(0.98)";
+            }}
+            onPointerUp={(e) => {
+              if (domains.length > 0) e.currentTarget.style.transform = "scale(1)";
+            }}
+            onPointerLeave={(e) => {
+              if (domains.length > 0) e.currentTarget.style.transform = "scale(1)";
+            }}
+          >
+            {domains.length === 0 ? "SELECT DOMAIN TO CONTINUE" : "INITIALIZE GENERATION"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
