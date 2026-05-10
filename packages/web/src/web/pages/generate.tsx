@@ -134,41 +134,105 @@ export default function GeneratePage() {
         <SectionLabel label={`RESULTS · ${previews.length} PROJECTS`} badge={providerBadge} />
       </div>
 
-      {/* Horizontal Strip */}
+      {/* 3D Coverflow Carousel */}
       <div 
-        className="hide-scroll"
         style={{
-          display: "flex",
-          gap: 24,
-          overflowX: "auto",
-          scrollSnapType: "x mandatory",
-          padding: "0 24px 24px 24px",
+          position: "relative",
           width: "100%",
+          height: 440,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          perspective: 1400,
+          overflow: "hidden",
+          margin: "0 auto 20px",
         }}
       >
-        {/* We add empty padding blocks at the ends to allow snapping to center if needed, or just let it scroll natively. */}
-        <div style={{ width: "max(0px, calc((100vw - 80rem) / 2))", flexShrink: 0 }} />
-        {previews.map((p, i) => (
-          <PreviewCard 
-            key={p.id} 
-            preview={p} 
-            index={i} 
-            isSelected={selectedPreview?.id === p.id}
-            onSelect={() => setSelectedPreview(p)}
-          />
-        ))}
-        <div style={{ width: "max(0px, calc((100vw - 80rem) / 2))", flexShrink: 0 }} />
+        {previews.map((p, i) => {
+          const activeIndex = previews.findIndex(x => x.id === selectedPreview?.id);
+          const currentIdx = activeIndex === -1 ? 0 : activeIndex;
+          const offset = i - currentIdx;
+          const absOffset = Math.abs(offset);
+          const direction = Math.sign(offset);
+
+          const isActive = offset === 0;
+
+          // Cinematic Math
+          const translateX = offset * 260; // horizontal spread
+          const translateZ = absOffset * -200; // push back into screen
+          const rotateY = direction * -25; // tilt towards center
+          const scale = isActive ? 1 : Math.max(0.8, 1 - (absOffset * 0.1));
+          const zIndex = 20 - absOffset;
+          const opacity = isActive ? 1 : Math.max(0, 1 - (absOffset * 0.35));
+          const blur = isActive ? 0 : Math.min(8, absOffset * 3);
+
+          return (
+            <div
+              key={p.id}
+              onClick={() => setSelectedPreview(p)}
+              style={{
+                position: "absolute",
+                transition: "all 600ms cubic-bezier(0.16, 1, 0.3, 1)",
+                transform: `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
+                zIndex,
+                opacity,
+                cursor: isActive ? "default" : "pointer",
+                filter: `blur(${blur}px)`,
+              }}
+            >
+              <div style={{ pointerEvents: isActive ? "auto" : "none" }}>
+                 <PreviewCard 
+                    preview={p} 
+                    index={i} 
+                    isSelected={isActive}
+                    onSelect={() => setSelectedPreview(p)}
+                  />
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <div style={{ textAlign: "center", marginBottom: 60 }}>
-        <span style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
-          textTransform: "uppercase",
-          color: "rgba(255,255,255,0.25)",
-        }}>
-          DRAG OR SCROLL TO BROWSE · CLICK TO EXPAND
-        </span>
+      <div style={{ textAlign: "center", marginBottom: 60, display: "flex", justifyContent: "center", gap: 24, alignItems: "center" }}>
+          <button 
+             onClick={() => {
+                const idx = previews.findIndex(x => x.id === selectedPreview?.id);
+                if (idx > 0) setSelectedPreview(previews[idx - 1]);
+             }}
+             style={{ 
+               background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", 
+               width: 36, height: 36, borderRadius: 18, cursor: "pointer", transition: "all 0.2s ease",
+               display: "flex", alignItems: "center", justifyContent: "center",
+               fontFamily: "var(--font-mono)", fontSize: 16
+             }}
+             onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
+             onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+          >←</button>
+          
+          <span style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.25)",
+            letterSpacing: "0.1em"
+          }}>
+            CLICK ADJACENT CARDS OR ARROWS TO BROWSE
+          </span>
+          
+          <button 
+             onClick={() => {
+                const idx = previews.findIndex(x => x.id === selectedPreview?.id);
+                if (idx < previews.length - 1) setSelectedPreview(previews[idx + 1]);
+             }}
+             style={{ 
+               background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)", 
+               width: 36, height: 36, borderRadius: 18, cursor: "pointer", transition: "all 0.2s ease",
+               display: "flex", alignItems: "center", justifyContent: "center",
+               fontFamily: "var(--font-mono)", fontSize: 16
+             }}
+             onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.background = "rgba(255,255,255,0.1)"; }}
+             onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.5)"; e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+          >→</button>
       </div>
 
       {/* Detail Spec */}
