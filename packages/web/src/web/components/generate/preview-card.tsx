@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { ProjectDetail, ProjectPreview, GenerateInput } from "../../../shared/types";
 import { downloadMarkdown } from "../../lib/export";
 
@@ -6,6 +7,54 @@ interface Props {
   index: number;
   isSelected: boolean;
   onSelect: () => void;
+}
+
+function easeOutExpo(x: number): number {
+  return x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
+}
+
+function AnimatedScore({ score, color, bg }: { score: number, color: string, bg: string }) {
+  const [displayScore, setDisplayScore] = useState(0);
+
+  useEffect(() => {
+    let start = performance.now();
+    const duration = 400; // ms
+
+    const animate = (time: number) => {
+      let timeFraction = (time - start) / duration;
+      if (timeFraction > 1) timeFraction = 1;
+
+      const progress = easeOutExpo(timeFraction);
+      setDisplayScore(Math.floor(progress * score));
+
+      if (timeFraction < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setDisplayScore(score);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [score]);
+
+  return (
+    <div style={{
+      fontFamily: "var(--font-mono)",
+      fontSize: 14,
+      fontWeight: 700,
+      color: color,
+      background: bg,
+      padding: "4px 12px",
+      borderRadius: 999,
+      minWidth: 48,
+      textAlign: "center",
+      boxShadow: score >= 80 ? `0 0 0 1px rgba(52,211,153,0.4), 0 0 16px rgba(52,211,153,0.25)` : 
+                 score >= 60 ? `0 0 0 1px rgba(251,191,36,0.4), 0 0 16px rgba(251,191,36,0.25)` :
+                 `0 0 0 1px rgba(248,113,113,0.4), 0 0 16px rgba(248,113,113,0.25)`,
+    }}>
+      {displayScore}
+    </div>
+  );
 }
 
 export function PreviewCard({ preview, index, isSelected, onSelect }: Props) {
@@ -31,7 +80,7 @@ export function PreviewCard({ preview, index, isSelected, onSelect }: Props) {
         scrollSnapAlign: "start",
         borderRadius: "var(--radius-card)",
         background: "rgba(255,255,255,0.03)",
-        border: isSelected ? "1px solid rgba(59,130,246,0.5)" : "1px solid rgba(255,255,255,0.07)",
+        border: isSelected ? "1px solid rgba(255,255,255,0.8)" : "1px solid rgba(255,255,255,0.07)",
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
         padding: 28,
@@ -39,23 +88,9 @@ export function PreviewCard({ preview, index, isSelected, onSelect }: Props) {
         flexDirection: "column",
         justifyContent: "space-between",
         cursor: "pointer",
-        transition: "all 300ms var(--ease-out)",
-        boxShadow: isSelected ? "0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(59,130,246,0.15)" : "none",
-        transform: isSelected ? "translateY(-6px)" : "translateY(0)",
-      }}
-      onMouseEnter={(e) => {
-        if (!isSelected) {
-          e.currentTarget.style.transform = "translateY(-6px)";
-          e.currentTarget.style.border = "1px solid rgba(59,130,246,0.3)";
-          e.currentTarget.style.boxShadow = "0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(59,130,246,0.15)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isSelected) {
-          e.currentTarget.style.transform = "translateY(0)";
-          e.currentTarget.style.border = "1px solid rgba(255,255,255,0.07)";
-          e.currentTarget.style.boxShadow = "none";
-        }
+        transition: "all 400ms cubic-bezier(0.16, 1, 0.3, 1)",
+        boxShadow: isSelected ? "0 40px 80px rgba(59,130,246,0.15), 0 0 0 1px rgba(59,130,246,0.2)" : "none",
+        transform: "translateY(0)", // Hover translation handled by container
       }}
     >
       <div>
@@ -107,17 +142,7 @@ export function PreviewCard({ preview, index, isSelected, onSelect }: Props) {
         </div>
         
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12 }}>
-          <div style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 14,
-            fontWeight: 700,
-            color: scoreColor,
-            background: scoreBg,
-            padding: "4px 12px",
-            borderRadius: 999,
-          }}>
-            {preview.originalityScore}
-          </div>
+          <AnimatedScore score={preview.originalityScore} color={scoreColor} bg={scoreBg} />
 
           <div style={{
             opacity: isSelected ? 1 : 0,
@@ -130,7 +155,7 @@ export function PreviewCard({ preview, index, isSelected, onSelect }: Props) {
             border: "1px solid rgba(59,130,246,0.4)",
             borderRadius: 999,
             padding: "4px 12px",
-            transition: "opacity 300ms var(--ease-out)",
+            transition: "opacity 400ms cubic-bezier(0.16, 1, 0.3, 1)",
           }}>
             VIEW SPEC →
           </div>

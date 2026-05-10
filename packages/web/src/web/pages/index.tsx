@@ -204,22 +204,40 @@ export default function IndexPage() {
               textTransform: "uppercase",
               border: "none",
               cursor: domains.length === 0 ? "not-allowed" : "pointer",
-              transition: "all 200ms var(--ease-out)",
+              transition: "all 300ms var(--ease-out)",
               marginTop: 20,
+              opacity: domains.length === 0 ? 0.3 : 1,
+              boxShadow: domains.length === 0 ? "none" : "0 0 32px rgba(99,102,241,0.35)",
             }}
             onMouseEnter={(e) => {
               if (domains.length > 0) {
-                e.currentTarget.style.boxShadow = "0 0 32px rgba(99,102,241,0.4)";
+                e.currentTarget.style.boxShadow = "0 0 40px rgba(99,102,241,0.5)";
                 e.currentTarget.style.filter = "brightness(1.08)";
               }
             }}
             onMouseLeave={(e) => {
               if (domains.length > 0) {
-                e.currentTarget.style.boxShadow = "none";
+                e.currentTarget.style.boxShadow = "0 0 32px rgba(99,102,241,0.35)";
                 e.currentTarget.style.filter = "brightness(1)";
               }
             }}
             onPointerDown={(e) => {
+              if (domains.length > 0) e.currentTarget.style.transform = "scale(0.98)";
+            }}
+            onPointerUp={(e) => {
+              if (domains.length > 0) e.currentTarget.style.transform = "scale(1)";
+            }}
+            onPointerLeave={(e) => {
+              if (domains.length > 0) e.currentTarget.style.transform = "scale(1)";
+            }}
+          >
+            {domains.length === 0 ? "SELECT DOMAIN TO CONTINUE" : "GENERATE PROJECTS →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}       onPointerDown={(e) => {
               if (domains.length > 0) e.currentTarget.style.transform = "scale(0.98)";
             }}
             onPointerUp={(e) => {

@@ -159,12 +159,12 @@ export default function GeneratePage() {
 
           // Cinematic Math
           const translateX = offset * 260; // horizontal spread
-          const translateZ = absOffset * -200; // push back into screen
+          const translateZ = absOffset * -60; // push back into screen
           const rotateY = direction * -25; // tilt towards center
-          const scale = isActive ? 1 : Math.max(0.8, 1 - (absOffset * 0.1));
+          const scale = isActive ? 1 : Math.max(0.88, 1 - (absOffset * 0.12));
           const zIndex = 20 - absOffset;
-          const opacity = isActive ? 1 : Math.max(0, 1 - (absOffset * 0.35));
-          const blur = isActive ? 0 : Math.min(8, absOffset * 3);
+          const opacity = isActive ? 1 : Math.max(0.35, 1 - (absOffset * 0.4));
+          const blur = isActive ? 0 : Math.min(2, absOffset * 2);
 
           return (
             <div
@@ -172,7 +172,7 @@ export default function GeneratePage() {
               onClick={() => setSelectedPreview(p)}
               style={{
                 position: "absolute",
-                transition: "all 600ms cubic-bezier(0.16, 1, 0.3, 1)",
+                transition: "all 400ms cubic-bezier(0.16, 1, 0.3, 1)",
                 transform: `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
                 zIndex,
                 opacity,

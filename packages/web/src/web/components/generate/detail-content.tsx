@@ -6,7 +6,7 @@ interface Props {
 
 function SpecHeader({ title }: { title: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "40px 0 20px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "48px 0 20px" }}>
       <div style={{
         fontFamily: "var(--font-mono)",
         fontSize: 11,
@@ -57,16 +57,16 @@ export function DetailContent({ detail }: Props) {
     <div style={{ paddingBottom: 100 }}>
       {/* Overview */}
       {(detail.problemStatement || detail.coreInnovation) && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
           {detail.problemStatement && (
             <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, textTransform: "uppercase" }}>Problem</div>
+              <SpecHeader title="Problem" />
               <TextBlock>{detail.problemStatement}</TextBlock>
             </div>
           )}
           {detail.coreInnovation && (
             <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8, textTransform: "uppercase" }}>Core Innovation</div>
+              <SpecHeader title="Core Innovation" />
               <TextBlock>{detail.coreInnovation}</TextBlock>
             </div>
           )}
@@ -85,15 +85,15 @@ export function DetailContent({ detail }: Props) {
       {detail.roadmap?.length > 0 && (
         <div>
           <SpecHeader title="Roadmap" />
-          <div style={{ position: "relative", paddingLeft: 24 }}>
+          <div style={{ position: "relative", paddingLeft: 32 }}>
             {/* Vertical Line */}
             <div style={{
               position: "absolute",
-              left: 2,
-              top: 8,
-              bottom: 8,
+              left: 4,
+              top: 10,
+              bottom: 0,
               width: 2,
-              background: "rgba(59,130,246,0.2)",
+              background: "linear-gradient(to bottom, #3B82F6, rgba(59,130,246,0.1))",
             }} />
             
             {detail.roadmap.map((step, i) => {
@@ -112,13 +112,13 @@ export function DetailContent({ detail }: Props) {
                   {/* Dot */}
                   <div style={{
                     position: "absolute",
-                    left: -25, // -24px padding + 2px line offset - 3px radius
+                    left: -33, // -32px padding + 4px line offset - 5px radius
                     top: 6,
-                    width: 6,
-                    height: 6,
+                    width: 10,
+                    height: 10,
                     borderRadius: "50%",
                     background: "#3B82F6",
-                    boxShadow: "0 0 8px rgba(59,130,246,0.6)",
+                    boxShadow: "0 0 0 3px rgba(59,130,246,0.15), 0 0 12px rgba(59,130,246,0.4)",
                   }} />
                   
                   <div style={{
