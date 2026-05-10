@@ -1,4 +1,4 @@
-import app from "../src/api/index";
+import app from "../src/api/index.js";
 
 export default async function handler(req: Request | any, res?: any) {
   if (!res) {

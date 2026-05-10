@@ -1,24 +1,24 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { getDb } from "./database";
-import * as schema from "./database/schema";
+import { getDb } from "./database/index.js";
+import * as schema from "./database/schema.js";
 import { eq, and } from "drizzle-orm";
-import { COMPANIES_DATA } from "./data/companies";
-import { TRENDS_DATA } from "./data/trends";
-import { generatePreviews, generateDetail } from "./data/llmChain";
-import type { ProviderKeys } from "./data/llmChain";
+import { COMPANIES_DATA } from "./data/companies.js";
+import { TRENDS_DATA } from "./data/trends.js";
+import { generatePreviews, generateDetail } from "./data/llmChain.js";
+import type { ProviderKeys } from "./data/llmChain.js";
 import {
   GenerateInputSchema,
   DetailInputSchema,
   SaveProjectSchema,
   IdParamSchema,
-} from "./schemas";
+} from "./schemas.js";
 import type {
   GeneratePreviewsResponse,
   GenerateDetailResponse,
   SavedProject,
   ApiError,
-} from "../shared/types";
+} from "../shared/types.js";
 
 // ─── Env helpers ──────────────────────────────────────────────────────────────
 

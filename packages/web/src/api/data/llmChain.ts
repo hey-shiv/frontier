@@ -11,19 +11,19 @@
  * Exactly one active LLM request per generate click.
  */
 
-import type { GenerateInput, ProjectPreview, ProjectDetail, LLMProvider } from "../../shared/types";
-import { callGemini } from "./gemini";
-import { callGroq } from "./groq";
-import { callOpenRouterForPreviews, callOpenRouterForDetail } from "./openrouter";
+import type { GenerateInput, ProjectPreview, ProjectDetail, LLMProvider } from "../../shared/types.js";
+import { callGemini } from "./gemini.js";
+import { callGroq } from "./groq.js";
+import { callOpenRouterForPreviews, callOpenRouterForDetail } from "./openrouter.js";
 import {
   PREVIEW_SYSTEM_PROMPT,
   DEEP_SYSTEM_PROMPT,
   buildPreviewUserPrompt,
   buildDeepUserPrompt,
-} from "./promptBuilder";
-import { generateProjects } from "./mockGenerator";
-import { gatherEnrichment } from "./enrichment";
-import type { EnrichmentContext } from "./enrichment";
+} from "./promptBuilder.js";
+import { generateProjects } from "./mockGenerator.js";
+import { gatherEnrichment } from "./enrichment.js";
+import type { EnrichmentContext } from "./enrichment.js";
 
 // ─── Provider credentials (loaded once at module init) ───────────────────────
 

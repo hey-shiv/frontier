@@ -190,8 +190,8 @@ export async function fetchSemanticScholarSignals(
 
 // ─── Aggregated enrichment ────────────────────────────────────────────────────
 
-import { TRENDS_DATA } from "./trends";
-import { COMPANIES_DATA } from "./companies";
+import { TRENDS_DATA } from "./trends.js";
+import { COMPANIES_DATA } from "./companies.js";
 
 export interface EnrichmentContext {
   github: GitHubSignal;

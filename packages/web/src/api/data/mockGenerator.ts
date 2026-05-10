@@ -8,7 +8,7 @@
  * - aiGenerated is ALWAYS false — caller must mark provider as "local-fallback"
  */
 
-import type { ProjectPreview, GenerateInput } from "../../shared/types";
+import type { ProjectPreview, GenerateInput } from "../../shared/types.js";
 
 // ─── Template bank (high-quality domain×interest pairs) ──────────────────────
 // Used as a boost when the user's selection matches. Extras are generated dynamically.

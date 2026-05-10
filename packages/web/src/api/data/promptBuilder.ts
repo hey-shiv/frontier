@@ -2,9 +2,9 @@
  * Shared prompt builder — used by all LLM providers (Gemini, Groq, OpenRouter).
  * Single source of truth for the generation prompt so all providers get identical instructions.
  */
-import type { GenerateInput } from "../../shared/types";
-import { formatEnrichmentForPrompt } from "./enrichment";
-import type { EnrichmentContext } from "./enrichment";
+import type { GenerateInput } from "../../shared/types.js";
+import { formatEnrichmentForPrompt } from "./enrichment.js";
+import type { EnrichmentContext } from "./enrichment.js";
 
 export const PREVIEW_SYSTEM_PROMPT = `You are an elite AI research director with deep knowledge of cutting-edge ML systems.
 Your job: generate exactly 6 highly specific, unique, technically impressive project ideas.
