@@ -31,6 +31,7 @@ export interface ProviderKeys {
   geminiKey?: string;
   groqKey?: string;
   openrouterKey?: string;
+  openrouterKey2?: string;
   githubToken?: string;
   semanticScholarKey?: string;
 }
@@ -295,7 +296,21 @@ export async function generateDetail(
     }
   }
 
-  // ── 4. Local stub ─────────────────────────────────────────────────────────
+  // ── 4. OpenRouter (Secondary Key) ─────────────────────────────────────────
+  if (keys.openrouterKey2) {
+    try {
+      console.log(`[LLMChain] Detail: OpenRouter (Secondary Key) for "${preview.title}"`);
+      const raw = await callOpenRouterForDetail(DEEP_SYSTEM_PROMPT, userPrompt, keys.openrouterKey2);
+      const detail = parseDetailObject(raw, preview);
+      detailCache.set(ckey, { data: detail, provider: "openrouter", ts: Date.now() });
+      return { detail, provider: "openrouter", warnings };
+    } catch (e: any) {
+      const msg = e.message?.slice(0, 150) ?? "unknown";
+      warnings.push(`OpenRouter (Secondary) detail failed: ${msg}`);
+    }
+  }
+
+  // ── 5. Local stub ─────────────────────────────────────────────────────────
   console.log(`[LLMChain] Detail: local stub for "${preview.title}"`);
   const fallbackWarning = warnings.length
     ? `All providers failed (${warnings.join(" | ")}) — stub details`

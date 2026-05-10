@@ -43,6 +43,7 @@ const PROVIDER_KEYS: ProviderKeys = {
   geminiKey:          loadEnvKey("GEMINI_API_KEY"),
   groqKey:            loadEnvKey("GROQ_API_KEY"),
   openrouterKey:      loadEnvKey("OPENROUTER_API_KEY"),
+  openrouterKey2:     loadEnvKey("OPENROUTER_API_KEY_2"),
   githubToken:        loadEnvKey("GITHUB_TOKEN"),
   semanticScholarKey: loadEnvKey("SEMANTIC_SCHOLAR_API_KEY"),
 };
@@ -51,7 +52,8 @@ const PROVIDER_KEYS: ProviderKeys = {
 console.log("[Frontier] LLM provider availability:");
 console.log("  Gemini:",          PROVIDER_KEYS.geminiKey     ? "✓ present" : "✗ missing");
 console.log("  Groq:",            PROVIDER_KEYS.groqKey       ? "✓ present" : "✗ missing");
-console.log("  OpenRouter:",      PROVIDER_KEYS.openrouterKey ? "✓ present" : "✗ missing");
+console.log("  OpenRouter 1:",    PROVIDER_KEYS.openrouterKey ? "✓ present" : "✗ missing");
+console.log("  OpenRouter 2:",    PROVIDER_KEYS.openrouterKey2 ? "✓ present" : "✗ missing");
 console.log("  GitHub token:",    PROVIDER_KEYS.githubToken   ? "✓ present" : "✗ optional");
 console.log("  Semantic Scholar:",PROVIDER_KEYS.semanticScholarKey ? "✓ present" : "✗ optional");
 
