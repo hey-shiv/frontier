@@ -142,7 +142,7 @@ const app = new Hono()
     const { previews, provider, warnings } = await generatePreviews(input, PROVIDER_KEYS);
 
     const aiGenerated = provider !== "local-fallback";
-    const warning     = warnings.length ? warnings[warnings.length - 1] : undefined;
+    const warning     = provider === "local-fallback" && warnings.length ? warnings[warnings.length - 1] : undefined;
 
     return c.json(
       {
