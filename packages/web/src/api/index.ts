@@ -7,8 +7,6 @@ import { COMPANIES_DATA } from "./data/companies";
 import { TRENDS_DATA } from "./data/trends";
 import { generatePreviews, generateDetail } from "./data/llmChain";
 import type { ProviderKeys } from "./data/llmChain";
-import { readFileSync } from "fs";
-import { resolve } from "path";
 import {
   GenerateInputSchema,
   DetailInputSchema,
@@ -25,17 +23,7 @@ import type {
 // ─── Env helpers ──────────────────────────────────────────────────────────────
 
 function loadEnvKey(key: string): string | undefined {
-  if (process.env[key]) return process.env[key];
-  for (const relPath of ["../../.env", ".env"]) {
-    try {
-      const content = readFileSync(resolve((process as any).cwd(), relPath), "utf-8");
-      const match = content.match(new RegExp(`^${key}=["']?([^"'\n]+)["']?`, "m"));
-      if (match?.[1]) return match[1].trim();
-    } catch {
-      // file missing — try next
-    }
-  }
-  return undefined;
+  return process.env[key];
 }
 
 // Load all provider keys at startup (backend-only — never sent to frontend)
@@ -235,7 +223,7 @@ const app = new Hono()
       .from(schema.savedProjects)
       .where(eq(schema.savedProjects.sessionId, sessionId));
 
-    const parsed: SavedProject[] = rows.map((p) => ({
+    const parsed: SavedProject[] = rows.map((p: any) => ({
       ...p,
       domains:           safeParseJsonArray(p.domains),
       interests:         safeParseJsonArray(p.interests),
