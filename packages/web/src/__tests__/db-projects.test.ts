@@ -1,12 +1,15 @@
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
-import { db } from "../api/database";
+import { getDb } from "../api/database";
 import * as schema from "../api/database/schema";
 import { eq } from "drizzle-orm";
 
 describe("Database & Session scoped saved projects", () => {
   const testSession = "test-session-123";
+  let db: any;
 
   beforeAll(async () => {
+    db = await getDb();
+    if (!db) throw new Error("Database is not configured for DB tests");
     await db.delete(schema.savedProjects).where(eq(schema.savedProjects.sessionId, testSession));
   });
 

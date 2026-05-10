@@ -1,40 +1,65 @@
-import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
-import path from "path";
 
 const isVercel = !!process.env.VERCEL;
-const dbUrl = process.env.DATABASE_URL;
-const authToken = process.env.DATABASE_AUTH_TOKEN;
+const dbUrl = process.env.DATABASE_URL?.trim();
+const authToken = process.env.DATABASE_AUTH_TOKEN?.trim();
 
-let client;
-let dbInstance: any = {};
+let dbPromise: Promise<any | null> | undefined;
+let warnedAboutMissingVercelDb = false;
 
-// We use an async IIFE or top-level await to initialize
-// In ESNext, top-level await is allowed, but let's be safe for Vercel
-try {
-  if (isVercel && !dbUrl) {
-    console.warn("[Database] Running on Vercel without DATABASE_URL. Using mock DB to prevent native binding crashes.");
-  } else {
-    // We import dynamically to avoid native binding crashes on Vercel if unused
-    import("@libsql/client").then(({ createClient }) => {
-      const finalUrl = dbUrl || `file:${path.resolve((process as any).cwd?.() || ".", "frontier-local.db")}`;
-      client = createClient({
-        url: finalUrl,
-        ...(authToken ? { authToken } : {}),
-      });
-      // Replace the mock with the real instance once loaded
-      dbInstance = drizzle(client, { schema });
-    }).catch(err => {
-      console.error("[Database] Async initialization failed:", err);
-    });
-  }
-} catch (error) {
-  console.error("[Database] Initialization failed:", error);
+export function hasDatabaseConfig(): boolean {
+  return Boolean(dbUrl) || !isVercel;
 }
 
-// Export a proxy so queries wait/fail gracefully if it's still loading or mocked
-export const db = new Proxy({} as any, {
-  get: (_, prop) => {
-    return dbInstance[prop];
+export async function getDb(): Promise<any | null> {
+  if (!hasDatabaseConfig()) {
+    if (!warnedAboutMissingVercelDb) {
+      console.warn("[Database] DATABASE_URL is not configured on Vercel. Saved projects are disabled.");
+      warnedAboutMissingVercelDb = true;
+    }
+    return null;
   }
+
+  dbPromise ??= createDatabase().catch((error) => {
+    dbPromise = undefined;
+    console.error("[Database] Initialization failed:", error);
+    throw error;
+  });
+
+  return dbPromise;
+}
+
+async function createDatabase() {
+  const url = dbUrl || getLocalDatabaseUrl();
+  const connection = {
+    url,
+    ...(authToken ? { authToken } : {}),
+  };
+
+  if (shouldUseHttpDriver(url)) {
+    const { drizzle } = await import("drizzle-orm/libsql/http");
+    return drizzle({ connection, schema });
+  }
+
+  const [{ createClient }, { drizzle }] = await Promise.all([
+    import("@libsql/client/node"),
+    import("drizzle-orm/libsql/node"),
+  ]);
+
+  return drizzle(createClient(connection), { schema });
+}
+
+function shouldUseHttpDriver(url: string): boolean {
+  return isVercel || /^(libsql|https?):\/\//i.test(url);
+}
+
+function getLocalDatabaseUrl(): string {
+  const cwd = typeof process.cwd === "function" ? process.cwd() : ".";
+  return `file:${cwd.replace(/\\/g, "/")}/frontier-local.db`;
+}
+
+export const db = new Proxy({} as any, {
+  get: () => {
+    throw new Error("Database access is asynchronous. Use getDb() instead.");
+  },
 });

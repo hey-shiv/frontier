@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { db } from "./database";
+import { getDb } from "./database";
 import * as schema from "./database/schema";
 import { eq, and } from "drizzle-orm";
 import { COMPANIES_DATA } from "./data/companies";
@@ -217,8 +217,13 @@ const app = new Hono()
   // ── Saved projects ──────────────────────────────────────────────────────────
   .get("/projects/saved", async (c) => {
     const sessionId = c.req.header("x-session-id")?.trim() || "anonymous";
+    const database = await getDb();
 
-    const rows = await db
+    if (!database) {
+      return c.json({ projects: [] }, 200);
+    }
+
+    const rows = await database
       .select()
       .from(schema.savedProjects)
       .where(eq(schema.savedProjects.sessionId, sessionId));
@@ -264,8 +269,13 @@ const app = new Hono()
     }
 
     const data = result.data;
+    const database = await getDb();
 
-    const existing = await db
+    if (!database) {
+      return c.json({ error: "Database is not configured" } satisfies ApiError, 503);
+    }
+
+    const existing = await database
       .select({ id: schema.savedProjects.id })
       .from(schema.savedProjects)
       .where(
@@ -280,7 +290,7 @@ const app = new Hono()
       return c.json({ error: "Project already saved", id: existing[0].id }, 409);
     }
 
-    const [saved] = await db
+    const [saved] = await database
       .insert(schema.savedProjects)
       .values({
         sessionId,
@@ -329,8 +339,13 @@ const app = new Hono()
 
     const { id } = paramResult.data;
     const sessionId = c.req.header("x-session-id")?.trim() || "anonymous";
+    const database = await getDb();
 
-    await db
+    if (!database) {
+      return c.json({ error: "Database is not configured" } satisfies ApiError, 503);
+    }
+
+    await database
       .delete(schema.savedProjects)
       .where(
         and(
