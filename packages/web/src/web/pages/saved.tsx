@@ -1,11 +1,24 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bookmark, Trash2, Clock } from "lucide-react";
+import { Bookmark, Trash2, Clock, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { getSessionId } from "../lib/session";
 import type { SavedProject } from "../../shared/types";
+import { DetailContent } from "../components/generate/detail-content";
+import { downloadMarkdown } from "../lib/export";
 
 export default function SavedPage() {
   const sessionId = getSessionId();
   const queryClient = useQueryClient();
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  const toggleExpand = (id: number) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["saved-projects", sessionId],
@@ -53,7 +66,7 @@ export default function SavedPage() {
             transform: "translateX(-50%)",
             width: 600,
             height: 240,
-            background: "radial-gradient(ellipse at bottom, rgba(201,79,67,0.13) 0%, transparent 70%)",
+            background: "radial-gradient(ellipse at bottom, rgba(59, 130, 246, 0.13) 0%, transparent 70%)",
             pointerEvents: "none",
           }}
         />
@@ -67,7 +80,7 @@ export default function SavedPage() {
             background: "var(--accent-soft)",
             border: "1px solid var(--accent-border)",
             fontSize: 12,
-            color: "#D07068",
+            color: "var(--accent-light)",
             fontWeight: 600,
             letterSpacing: "0.05em",
             textTransform: "uppercase",
@@ -222,7 +235,7 @@ export default function SavedPage() {
                             key={co}
                             style={{
                               fontSize: 11,
-                              color: "#D07068",
+                              color: "var(--accent-light)",
                               background: "var(--accent-soft)",
                               border: "1px solid var(--accent-border)",
                               padding: "2px 8px",
@@ -235,34 +248,99 @@ export default function SavedPage() {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => deleteMutation.mutate(project.id)}
-                      disabled={deleteMutation.isPending}
-                      style={{
-                        background: "none",
-                        border: "1px solid var(--border)",
-                        borderRadius: 8,
-                        cursor: "pointer",
-                        color: "var(--text-muted)",
-                        padding: 8,
-                        display: "flex",
-                        transition: "all 0.15s ease",
-                        flexShrink: 0,
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.borderColor = "#EF4444";
-                        (e.currentTarget as HTMLButtonElement).style.color = "#EF4444";
-                        (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.1)";
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
-                        (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
-                        (e.currentTarget as HTMLButtonElement).style.background = "none";
-                      }}
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                      <button
+                        onClick={() => downloadMarkdown(project as any)}
+                        style={{
+                          background: "none",
+                          border: "1px solid var(--border)",
+                          borderRadius: 8,
+                          cursor: "pointer",
+                          color: "var(--text-muted)",
+                          padding: 8,
+                          display: "flex",
+                          transition: "all 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--accent-light)";
+                          (e.currentTarget as HTMLButtonElement).style.color = "var(--accent-light)";
+                          (e.currentTarget as HTMLButtonElement).style.background = "var(--accent-soft)";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
+                          (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
+                          (e.currentTarget as HTMLButtonElement).style.background = "none";
+                        }}
+                        title="Download Markdown"
+                      >
+                        <Download size={15} />
+                      </button>
+                      <button
+                        onClick={() => deleteMutation.mutate(project.id)}
+                        disabled={deleteMutation.isPending}
+                        style={{
+                          background: "none",
+                          border: "1px solid var(--border)",
+                          borderRadius: 8,
+                          cursor: "pointer",
+                          color: "var(--text-muted)",
+                          padding: 8,
+                          display: "flex",
+                          transition: "all 0.15s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.borderColor = "#EF4444";
+                          (e.currentTarget as HTMLButtonElement).style.color = "#EF4444";
+                          (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.1)";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
+                          (e.currentTarget as HTMLButtonElement).style.color = "var(--text-muted)";
+                          (e.currentTarget as HTMLButtonElement).style.background = "none";
+                        }}
+                        title="Delete project"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
                   </div>
+
+                  <button
+                    onClick={() => toggleExpand(project.id)}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 7,
+                      padding: "11px 0",
+                      marginTop: 16,
+                      border: "none",
+                      borderTop: "1px solid var(--border)",
+                      background: "transparent",
+                      color: "var(--text-muted)",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      fontFamily: "var(--font-mono)",
+                      letterSpacing: "0.04em",
+                      transition: "color 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
+                  >
+                    {expandedIds.has(project.id) ? (
+                      <><ChevronUp size={13} /> HIDE BLUEPRINT</>
+                    ) : (
+                      <><ChevronDown size={13} /> VIEW FULL BLUEPRINT</>
+                    )}
+                  </button>
+
+                  {expandedIds.has(project.id) && (
+                    <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)", animation: "fadeIn 0.3s ease forwards" }}>
+                      <DetailContent detail={project as any} />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -272,3 +350,4 @@ export default function SavedPage() {
     </div>
   );
 }
+

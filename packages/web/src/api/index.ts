@@ -28,7 +28,7 @@ function loadEnvKey(key: string): string | undefined {
   if (process.env[key]) return process.env[key];
   for (const relPath of ["../../.env", ".env"]) {
     try {
-      const content = readFileSync(resolve(process.cwd(), relPath), "utf-8");
+      const content = readFileSync(resolve((process as any).cwd(), relPath), "utf-8");
       const match = content.match(new RegExp(`^${key}=["']?([^"'\n]+)["']?`, "m"));
       if (match?.[1]) return match[1].trim();
     } catch {
@@ -235,13 +235,22 @@ const app = new Hono()
 
     const parsed: SavedProject[] = rows.map((p) => ({
       ...p,
-      domains:         safeParseJsonArray(p.domains),
-      interests:       safeParseJsonArray(p.interests),
-      roadmap:         safeParseJsonArray(p.roadmap),
-      datasets:        safeParseJsonArray(p.datasets),
-      apis:            safeParseJsonArray(p.apis),
-      targetCompanies: safeParseJsonArray(p.targetCompanies),
-    }));
+      domains:           safeParseJsonArray(p.domains),
+      interests:         safeParseJsonArray(p.interests),
+      tags:              safeParseJsonArray(p.tags),
+      requiredSkills:    safeParseJsonArray(p.requiredSkills),
+      techStack:         safeParseJsonArray(p.techStack),
+      recommendedModels: safeParseJsonArray(p.recommendedModels),
+      datasets:          safeParseJsonArray(p.datasets),
+      apis:              safeParseJsonArray(p.apis),
+      evaluationMetrics: safeParseJsonArray(p.evaluationMetrics),
+      roadmap:           safeParseJsonArray(p.roadmap),
+      scalingIdeas:      safeParseJsonArray(p.scalingIdeas),
+      futureImprovements:safeParseJsonArray(p.futureImprovements),
+      targetCompanies:   safeParseJsonArray(p.targetCompanies),
+      providerMeta:      JSON.parse(p.providerMeta || "{}"),
+      inputProfile:      JSON.parse(p.inputProfile || "{}"),
+    } as SavedProject));
 
     return c.json({ projects: parsed }, 200);
   })
@@ -285,21 +294,37 @@ const app = new Hono()
       .insert(schema.savedProjects)
       .values({
         sessionId,
-        title:            data.title,
-        pitch:            data.pitch,
-        domains:          JSON.stringify(data.tags),
-        interests:        JSON.stringify([]),
-        difficulty:       data.difficulty,
-        timeEstimate:     data.timeEstimate,
-        originalityScore: data.originalityScore,
-        recruiterScore:   data.recruiterScore,
-        startupScore:     data.startupScore,
-        architecture:     data.architecture,
-        roadmap:          JSON.stringify(data.roadmap),
-        datasets:         JSON.stringify(data.datasets),
-        apis:             JSON.stringify(data.apis),
-        deployment:       data.deployment,
-        targetCompanies:  JSON.stringify(data.targetCompanies),
+        title:               data.title,
+        pitch:               data.pitch,
+        domains:             JSON.stringify([]), // domains and interests not passed inside SaveProjectSchema?
+        interests:           JSON.stringify([]),
+        tags:                JSON.stringify(data.tags),
+        category:            data.category,
+        difficulty:          data.difficulty,
+        timeEstimate:        data.timeEstimate,
+        researchLevel:       data.researchLevel,
+        originalityScore:    data.originalityScore,
+        recruiterScore:      data.recruiterScore,
+        startupScore:        data.startupScore,
+        publishabilityScore: data.publishabilityScore,
+        researchBottleneck:  data.researchBottleneck,
+        problemStatement:    data.problemStatement,
+        whyItMatters:        data.whyItMatters,
+        coreInnovation:      data.coreInnovation,
+        architecture:        data.architecture,
+        requiredSkills:      JSON.stringify(data.requiredSkills),
+        techStack:           JSON.stringify(data.techStack),
+        recommendedModels:   JSON.stringify(data.recommendedModels),
+        datasets:            JSON.stringify(data.datasets),
+        apis:                JSON.stringify(data.apis),
+        evaluationMetrics:   JSON.stringify(data.evaluationMetrics),
+        roadmap:             JSON.stringify(data.roadmap),
+        deployment:          data.deployment,
+        scalingIdeas:        JSON.stringify(data.scalingIdeas),
+        futureImprovements:  JSON.stringify(data.futureImprovements),
+        targetCompanies:     JSON.stringify(data.targetCompanies),
+        providerMeta:        JSON.stringify(data.providerMeta),
+        inputProfile:        JSON.stringify(data.inputProfile),
       })
       .returning();
 

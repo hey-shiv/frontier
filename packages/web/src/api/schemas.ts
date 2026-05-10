@@ -35,9 +35,9 @@ const PreviewSchema = z.object({
   pitch: z.string(),
   tags: z.array(z.string()).default([]),
   category: z.string().default("AI Systems"),
-  difficulty: z.string().default("Advanced"),
+  difficulty: z.enum(["Beginner", "Intermediate", "Advanced", "Researcher"]).default("Advanced"),
   timeEstimate: z.string().default(""),
-  researchLevel: z.string().default("Research"),
+  researchLevel: z.enum(["Internship", "Research", "Startup", "Publishable"]).default("Research"),
   originalityScore: z.number(),
   recruiterScore: z.number(),
   startupScore: z.number(),
@@ -57,17 +57,32 @@ export const SaveProjectSchema = z.object({
   title: z.string().min(1).max(300),
   pitch: z.string().min(1).max(1000),
   tags: z.array(z.string().max(80)).default([]),
+  category: z.string().default("AI Systems"),
   difficulty: z.string().min(1).max(50),
   timeEstimate: z.string().min(1).max(100),
+  researchLevel: z.enum(["Internship", "Research", "Startup", "Publishable"]).default("Research"),
   originalityScore: z.number().int().min(0).max(100),
   recruiterScore: z.number().int().min(0).max(100),
   startupScore: z.number().int().min(0).max(100),
+  publishabilityScore: z.number().int().min(0).max(100).default(80),
+  researchBottleneck: z.string().default(""),
+  problemStatement: z.string().default(""),
+  whyItMatters: z.string().default(""),
+  coreInnovation: z.string().default(""),
   architecture: z.string().max(2000).default(""),
-  roadmap: z.array(z.string().max(300)).default([]),
+  requiredSkills: z.array(z.string()).default([]),
+  techStack: z.array(z.string()).default([]),
+  recommendedModels: z.array(z.string()).default([]),
   datasets: z.array(z.string().max(200)).default([]),
   apis: z.array(z.string().max(200)).default([]),
+  evaluationMetrics: z.array(z.string()).default([]),
+  roadmap: z.array(z.string().max(300)).default([]),
   deployment: z.string().max(500).default(""),
+  scalingIdeas: z.array(z.string()).default([]),
+  futureImprovements: z.array(z.string()).default([]),
   targetCompanies: z.array(z.string().max(100)).default([]),
+  providerMeta: z.record(z.string(), z.any()).default({}),
+  inputProfile: z.record(z.string(), z.any()).default({}),
 });
 
 export type SaveProjectParsed = z.infer<typeof SaveProjectSchema>;
@@ -77,6 +92,6 @@ export type SaveProjectParsed = z.infer<typeof SaveProjectSchema>;
 export const IdParamSchema = z.object({
   id: z
     .string()
-    .regex(/^\d+$/, "id must be a positive integer")
+    .regex(/^\\d+$/, "id must be a positive integer")
     .transform(Number),
 });

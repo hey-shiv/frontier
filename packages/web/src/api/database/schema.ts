@@ -7,17 +7,33 @@ export const savedProjects = sqliteTable("saved_projects", {
   pitch: text("pitch").notNull(),
   domains: text("domains").notNull(), // JSON array
   interests: text("interests").notNull(), // JSON array
+  tags: text("tags").notNull(), // JSON array
+  category: text("category").notNull(),
   difficulty: text("difficulty").notNull(),
   timeEstimate: text("time_estimate").notNull(),
+  researchLevel: text("research_level").notNull(),
   originalityScore: integer("originality_score").notNull(),
   recruiterScore: integer("recruiter_score").notNull(),
   startupScore: integer("startup_score").notNull(),
+  publishabilityScore: integer("publishability_score").notNull(),
+  researchBottleneck: text("research_bottleneck").notNull(),
+  problemStatement: text("problem_statement").notNull(),
+  whyItMatters: text("why_it_matters").notNull(),
+  coreInnovation: text("core_innovation").notNull(),
   architecture: text("architecture").notNull(),
-  roadmap: text("roadmap").notNull(), // JSON array
+  requiredSkills: text("required_skills").notNull(), // JSON array
+  techStack: text("tech_stack").notNull(), // JSON array
+  recommendedModels: text("recommended_models").notNull(), // JSON array
   datasets: text("datasets").notNull(), // JSON array
   apis: text("apis").notNull(), // JSON array
+  evaluationMetrics: text("evaluation_metrics").notNull(), // JSON array
+  roadmap: text("roadmap").notNull(), // JSON array
   deployment: text("deployment").notNull(),
+  scalingIdeas: text("scaling_ideas").notNull(), // JSON array
+  futureImprovements: text("future_improvements").notNull(), // JSON array
   targetCompanies: text("target_companies").notNull(), // JSON array
+  providerMeta: text("provider_meta").notNull(), // JSON object
+  inputProfile: text("input_profile").notNull(), // JSON object
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

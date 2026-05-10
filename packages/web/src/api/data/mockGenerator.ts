@@ -175,9 +175,9 @@ export function generateProjects(input: GenerateInput): ProjectPreview[] {
   const seen  = new Set<string>();
   const results: ProjectPreview[] = [];
 
-  // Helper: push if not duplicate, up to 4
+  // Helper: push if not duplicate, up to 6
   const push = (p: ProjectPreview) => {
-    if (results.length >= 4) return;
+    if (results.length >= 6) return;
     if (seen.has(p.id)) return;
     seen.add(p.id);
     results.push(p);
@@ -186,7 +186,7 @@ export function generateProjects(input: GenerateInput): ProjectPreview[] {
   // ── Phase 1: Template matches ─────────────────────────────────────────────
   for (const domain of domains) {
     for (const interest of interests) {
-      if (results.length >= 4) break;
+      if (results.length >= 6) break;
       const key1 = templateKey(domain, interest);
       const key2 = templateKey(interest, domain);
       const tpl  = TEMPLATE_BANK[key1] ?? TEMPLATE_BANK[key2];
@@ -213,7 +213,7 @@ export function generateProjects(input: GenerateInput): ProjectPreview[] {
         targetCompanies:    [company, companies[(results.length + 1) % companies.length]].filter((v, i, a) => a.indexOf(v) === i),
       });
     }
-    if (results.length >= 4) break;
+    if (results.length >= 6) break;
   }
 
   // ── Phase 2: Dynamic combos for remaining slots ───────────────────────────
@@ -251,7 +251,7 @@ export function generateProjects(input: GenerateInput): ProjectPreview[] {
   outer:
   for (const domain of domains) {
     for (const interest of interests) {
-      if (results.length >= 4) break outer;
+      if (results.length >= 6) break outer;
 
       const comboId = `dyn-${domain.replace(/\s+/g, "-").toLowerCase()}-${interest.replace(/\s+/g, "-").toLowerCase()}-${results.length}`;
       if (seen.has(comboId)) continue;
@@ -284,12 +284,12 @@ export function generateProjects(input: GenerateInput): ProjectPreview[] {
     }
   }
 
-  // ── Phase 3: If somehow still under 4, synthesize from domains alone ──────
-  for (let di = 0; results.length < 4; di++) {
+  // ── Phase 3: If somehow still under 6, synthesize from domains alone ──────
+  for (let di = 0; results.length < 6; di++) {
     const domain  = domains[di % domains.length];
     const company = companies[results.length % companies.length];
     const id      = `fill-${domain.replace(/\s+/g, "-").toLowerCase()}-${results.length}`;
-    if (seen.has(id)) { if (di > domains.length * 4) break; continue; }
+    if (seen.has(id)) { if (di > domains.length * 6) break; continue; }
 
     push({
       id,
@@ -309,5 +309,5 @@ export function generateProjects(input: GenerateInput): ProjectPreview[] {
     });
   }
 
-  return results.slice(0, 4);
+  return results.slice(0, 6);
 }

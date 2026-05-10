@@ -190,16 +190,24 @@ export async function fetchSemanticScholarSignals(
 
 // ─── Aggregated enrichment ────────────────────────────────────────────────────
 
+import { TRENDS_DATA } from "./trends";
+import { COMPANIES_DATA } from "./companies";
+
 export interface EnrichmentContext {
   github: GitHubSignal;
   hn: HNSignal;
   arxiv: ArxivSignal;
   scholar: ScholarSignal;
+  internalSignals?: {
+    trends: string[];
+    companies: string[];
+  };
 }
 
 export async function gatherEnrichment(
   domains: string[],
   interests: string[],
+  companies: string[],
   opts: {
     githubToken?: string;
     semanticScholarKey?: string;
@@ -216,7 +224,18 @@ export async function gatherEnrichment(
     fetchSemanticScholarSignals(primaryQuery, opts.semanticScholarKey).catch(() => ({ influentialPapers: [] })),
   ]);
 
-  return { github, hn, arxiv, scholar };
+  const matchedTrends = TRENDS_DATA
+    .filter(t => domains.some(d => t.category.toLowerCase().includes(d.toLowerCase()) || t.tags.some(tag => tag.toLowerCase() === d.toLowerCase())))
+    .map(t => `${t.title} - ${t.description}`);
+  
+  const matchedCompanies = COMPANIES_DATA
+    .filter(c => companies.some(tc => c.name.toLowerCase() === tc.toLowerCase()))
+    .map(c => `${c.name} (Focus: ${c.focus.join(", ")}): ${c.recentWork[0]}`);
+
+  return { 
+    github, hn, arxiv, scholar, 
+    internalSignals: { trends: matchedTrends, companies: matchedCompanies }
+  };
 }
 
 /** Format enrichment as a compact string block for LLM prompt injection */

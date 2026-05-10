@@ -7,7 +7,7 @@ import { formatEnrichmentForPrompt } from "./enrichment";
 import type { EnrichmentContext } from "./enrichment";
 
 export const PREVIEW_SYSTEM_PROMPT = `You are an elite AI research director with deep knowledge of cutting-edge ML systems.
-Your job: generate exactly 4 highly specific, unique, technically impressive project ideas.
+Your job: generate exactly 6 highly specific, unique, technically impressive project ideas.
 Output ONLY a valid JSON array. No markdown fences, no prose, no explanation.`;
 
 export function buildPreviewUserPrompt(input: GenerateInput, enrichment?: EnrichmentContext): string {
@@ -17,16 +17,16 @@ export function buildPreviewUserPrompt(input: GenerateInput, enrichment?: Enrich
   const allCombos = domains.flatMap(d =>
     (interests.length > 0 ? interests : ["Technology"]).map(i => `${d} × ${i}`)
   );
-  const assigned = [0, 1, 2, 3].map(i => allCombos[i % Math.max(allCombos.length, 1)]);
+  const assigned = [0, 1, 2, 3, 4, 5].map(i => allCombos[i % Math.max(allCombos.length, 1)]);
 
-  // Ensure unique combos — if we have fewer than 4 distinct pairs, rotate companies
+  // Ensure unique combos — if we have fewer than 6 distinct pairs, rotate companies
   const companiesList = companies.length > 0 ? companies : ["OpenAI", "DeepMind", "Anthropic", "Mistral"];
 
   const enrichmentBlock = enrichment ? formatEnrichmentForPrompt(enrichment) : "";
 
   return `Variation seed: ${seed ?? Date.now()} — produce output that differs noticeably from any previous call.
 
-Generate EXACTLY 4 project PREVIEWS for a ${experience}-level developer.
+Generate EXACTLY 6 project PREVIEWS for a ${experience}-level developer.
 
 == USER PROFILE ==
 Goal: ${goal}
@@ -40,10 +40,12 @@ Project 1: ${assigned[0]}
 Project 2: ${assigned[1]}
 Project 3: ${assigned[2]}
 Project 4: ${assigned[3]}
+Project 5: ${assigned[4]}
+Project 6: ${assigned[5]}
 
-${enrichmentBlock ? `== CURRENT TECH SIGNALS (use to inspire specific choices) ==\n${enrichmentBlock}\n` : ""}
+${enrichmentBlock ? "== CURRENT TECH SIGNALS (use to inspire specific choices) ==\\n" + enrichmentBlock + "\\n" : ""}
 == STRICT RULES ==
-- Return ONLY a JSON array of exactly 4 objects — no markdown, no prose
+- Return ONLY a JSON array of exactly 6 objects — no markdown, no prose
 - Each project MUST use a different primary domain from the list
 - Each project MUST be relevant to at least one of the target companies
 - Titles MUST name a specific architecture, technique, or model (not generic phrases)

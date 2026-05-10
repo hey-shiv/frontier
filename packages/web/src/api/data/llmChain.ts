@@ -161,7 +161,7 @@ export async function generatePreviews(
   let enrichment: EnrichmentContext | undefined;
   try {
     console.log("[LLMChain] Gathering enrichment signals...");
-    enrichment = await gatherEnrichment(input.domains, input.interests, {
+    enrichment = await gatherEnrichment(input.domains, input.interests, input.companies, {
       githubToken: keys.githubToken,
       semanticScholarKey: keys.semanticScholarKey,
     });

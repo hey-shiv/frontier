@@ -84,17 +84,33 @@ export interface SavedProject {
   pitch: string;
   domains: string[];
   interests: string[];
+  tags: string[];
+  category: string;
   difficulty: string;
   timeEstimate: string;
+  researchLevel: string;
   originalityScore: number;
   recruiterScore: number;
   startupScore: number;
+  publishabilityScore: number;
+  researchBottleneck: string;
+  problemStatement: string;
+  whyItMatters: string;
+  coreInnovation: string;
   architecture: string;
-  roadmap: string[];
+  requiredSkills: string[];
+  techStack: string[];
+  recommendedModels: string[];
   datasets: string[];
   apis: string[];
+  evaluationMetrics: string[];
+  roadmap: string[];
   deployment: string;
+  scalingIdeas: string[];
+  futureImprovements: string[];
   targetCompanies: string[];
+  providerMeta: any;
+  inputProfile: any;
   createdAt: Date;
 }
 

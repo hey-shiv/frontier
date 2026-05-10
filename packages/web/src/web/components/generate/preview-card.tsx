@@ -246,14 +246,14 @@ export function PreviewCard({ preview, index, input, isSaved, isDuplicate, onSav
               padding: "10px 12px",
               borderRadius: 8,
               marginBottom: 16,
-              background: "rgba(201,79,67,0.05)",
-              border: "1px solid rgba(201,79,67,0.15)",
+              background: "var(--accent-soft)",
+              border: "1px solid var(--accent-border)",
             }}
           >
             <div style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
               <AlertTriangle
                 size={11}
-                color="#C94F43"
+                color="var(--accent)"
                 style={{ marginTop: 2, flexShrink: 0 }}
               />
               <span

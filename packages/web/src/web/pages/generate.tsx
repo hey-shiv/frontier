@@ -238,7 +238,7 @@ export default function GeneratePage() {
         <div style={{
           position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)",
           width: "60%", height: 200,
-          background: "radial-gradient(ellipse 50% 100% at 50% 100%, rgba(201,79,67,0.1) 0%, transparent 70%)",
+          background: "radial-gradient(ellipse 50% 100% at 50% 100%, rgba(59, 130, 246, 0.15) 0%, transparent 70%)",
           pointerEvents: "none",
         }} />
         <div className="section-label fade-up" style={{ display: "inline-flex" }}>
@@ -405,7 +405,7 @@ export default function GeneratePage() {
           {/* Cards grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(380px, 1fr))", gap: 20 }}>
             {showSkeletons
-              ? [...Array(4)].map((_, i) => <SkeletonCard key={i} index={i} />)
+              ? [...Array(6)].map((_, i) => <SkeletonCard key={i} index={i} />)
               : previews.map((preview, i) => (
                   <PreviewCard
                     key={preview.id}
@@ -414,7 +414,7 @@ export default function GeneratePage() {
                     input={inputSnapshot.current!}
                     isSaved={savedIds.has(preview.id)}
                     isDuplicate={duplicateIds.has(preview.id)}
-                    onSave={p => saveMutation.mutate(p)}
+                    onSave={p => saveMutation.mutate({ ...p, inputProfile: inputSnapshot.current!, providerMeta: meta ?? {} })}
                   />
                 ))
             }
