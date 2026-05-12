@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../lib/api";
 import type { GenerateInput } from "@frontier/shared";
+import { getSessionId } from "../lib/session";
 
 const SESSION_ID = "mobile-session-v1";
 
@@ -49,7 +50,8 @@ export default function GeneratePage() {
 
   const saveProject = async (project: any) => {
     try {
-      const res = await api.projects.save.$post({ json: project as any }, { headers: { "x-session-id": SESSION_ID } });
+      const sessionId = await getSessionId();
+      const res = await api.projects.save.$post({ json: project as any }, { headers: { "x-session-id": sessionId } });
       if (res.ok) {
         Alert.alert("Success", "Project saved to library!");
       } else if (res.status === 409) {

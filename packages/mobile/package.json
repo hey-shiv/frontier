@@ -11,12 +11,15 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@frontier/shared": "workspace:*",
-    "@tanstack/react-query": "^5.96.1",
-    "@frontier/web": "workspace:*",
     "@expo/vector-icons": "^14.0.0",
+    "@frontier/shared": "workspace:*",
+    "@frontier/ui-core": "workspace:*",
+    "@frontier/web": "workspace:*",
+    "@react-native-async-storage/async-storage": "^3.0.2",
+    "@tanstack/react-query": "^5.96.1",
     "expo": "~54.0.33",
     "expo-constants": "~18.0.13",
+    "expo-crypto": "^55.0.14",
     "expo-linking": "~8.0.11",
     "expo-router": "~6.0.23",
     "expo-splash-screen": "~31.0.13",

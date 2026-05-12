@@ -5,13 +5,14 @@ import { Ionicons } from "@expo/vector-icons";
 import type { SavedProject } from "@frontier/shared";
 import { api } from "../lib/api";
 
-const SESSION_ID = "mobile-session-v1"; // Simple static session ID for mobile demo
+import { getSessionId } from "../lib/session";
 
 export default function SavedPage() {
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["saved-projects", SESSION_ID],
+    queryKey: ["saved-projects"],
     queryFn: async () => {
-      const res = await api.projects.saved.$get({}, { headers: { "x-session-id": SESSION_ID } });
+      const sessionId = await getSessionId();
+      const res = await api.projects.saved.$get({}, { headers: { "x-session-id": sessionId } });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
     },
@@ -19,7 +20,8 @@ export default function SavedPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await api.projects.saved[":id"].$delete({ param: { id: id.toString() } }, { headers: { "x-session-id": SESSION_ID } });
+      const sessionId = await getSessionId();
+      const res = await api.projects.saved[":id"].$delete({ param: { id: id.toString() } }, { headers: { "x-session-id": sessionId } });
       if (!res.ok) throw new Error("Delete failed");
     },
     onSuccess: () => refetch(),
