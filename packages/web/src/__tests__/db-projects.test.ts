@@ -1,6 +1,5 @@
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
-import { getDb } from "../api/database";
-import * as schema from "../api/database/schema";
+import { getDb, schema } from "@frontier/db";
 import { eq } from "drizzle-orm";
 
 describe("Database & Session scoped saved projects", () => {
@@ -22,9 +21,9 @@ describe("Database & Session scoped saved projects", () => {
       sessionId: testSession,
       title: "DB Test Project",
       pitch: "Testing DB ops",
-      domains: "[]",
-      interests: "[]",
-      tags: '["DB"]',
+      domains: [],
+      interests: [],
+      tags: ["DB"],
       category: "Test",
       difficulty: "Beginner",
       timeEstimate: "1 week",
@@ -38,19 +37,19 @@ describe("Database & Session scoped saved projects", () => {
       whyItMatters: "Test reason",
       coreInnovation: "Test innovation",
       architecture: "Test arch",
-      requiredSkills: "[]",
-      techStack: "[]",
-      recommendedModels: "[]",
-      datasets: "[]",
-      apis: "[]",
-      evaluationMetrics: "[]",
-      roadmap: '["Step 1"]',
+      requiredSkills: [],
+      techStack: [],
+      recommendedModels: [],
+      datasets: [],
+      apis: [],
+      evaluationMetrics: [],
+      roadmap: ["Step 1"],
       deployment: "Test deploy",
-      scalingIdeas: "[]",
-      futureImprovements: "[]",
-      targetCompanies: "[]",
-      providerMeta: "{}",
-      inputProfile: "{}"
+      scalingIdeas: [],
+      futureImprovements: [],
+      targetCompanies: [],
+      providerMeta: {},
+      inputProfile: {}
     }).returning();
 
     expect(inserted).toBeDefined();

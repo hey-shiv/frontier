@@ -5,9 +5,9 @@ export const savedProjects = sqliteTable("saved_projects", {
   sessionId: text("session_id").notNull(),
   title: text("title").notNull(),
   pitch: text("pitch").notNull(),
-  domains: text("domains").notNull(), // JSON array
-  interests: text("interests").notNull(), // JSON array
-  tags: text("tags").notNull(), // JSON array
+  domains: text("domains", { mode: "json" }).$type<string[]>().notNull(),
+  interests: text("interests", { mode: "json" }).$type<string[]>().notNull(),
+  tags: text("tags", { mode: "json" }).$type<string[]>().notNull(),
   category: text("category").notNull(),
   difficulty: text("difficulty").notNull(),
   timeEstimate: text("time_estimate").notNull(),
@@ -21,19 +21,19 @@ export const savedProjects = sqliteTable("saved_projects", {
   whyItMatters: text("why_it_matters").notNull(),
   coreInnovation: text("core_innovation").notNull(),
   architecture: text("architecture").notNull(),
-  requiredSkills: text("required_skills").notNull(), // JSON array
-  techStack: text("tech_stack").notNull(), // JSON array
-  recommendedModels: text("recommended_models").notNull(), // JSON array
-  datasets: text("datasets").notNull(), // JSON array
-  apis: text("apis").notNull(), // JSON array
-  evaluationMetrics: text("evaluation_metrics").notNull(), // JSON array
-  roadmap: text("roadmap").notNull(), // JSON array
+  requiredSkills: text("required_skills", { mode: "json" }).$type<string[]>().notNull(),
+  techStack: text("tech_stack", { mode: "json" }).$type<string[]>().notNull(),
+  recommendedModels: text("recommended_models", { mode: "json" }).$type<string[]>().notNull(),
+  datasets: text("datasets", { mode: "json" }).$type<string[]>().notNull(),
+  apis: text("apis", { mode: "json" }).$type<string[]>().notNull(),
+  evaluationMetrics: text("evaluation_metrics", { mode: "json" }).$type<string[]>().notNull(),
+  roadmap: text("roadmap", { mode: "json" }).$type<string[]>().notNull(),
   deployment: text("deployment").notNull(),
-  scalingIdeas: text("scaling_ideas").notNull(), // JSON array
-  futureImprovements: text("future_improvements").notNull(), // JSON array
-  targetCompanies: text("target_companies").notNull(), // JSON array
-  providerMeta: text("provider_meta").notNull(), // JSON object
-  inputProfile: text("input_profile").notNull(), // JSON object
+  scalingIdeas: text("scaling_ideas", { mode: "json" }).$type<string[]>().notNull(),
+  futureImprovements: text("future_improvements", { mode: "json" }).$type<string[]>().notNull(),
+  targetCompanies: text("target_companies", { mode: "json" }).$type<string[]>().notNull(),
+  providerMeta: text("provider_meta", { mode: "json" }).$type<Record<string, any>>().notNull(),
+  inputProfile: text("input_profile", { mode: "json" }).$type<Record<string, any>>().notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -44,12 +44,12 @@ export const companies = sqliteTable("companies", {
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   tagline: text("tagline").notNull(),
-  focus: text("focus").notNull(), // JSON array
+  focus: text("focus", { mode: "json" }).$type<string[]>().notNull(),
   stage: text("stage").notNull(),
   hiring: integer("hiring", { mode: "boolean" }).notNull().default(true),
-  recentWork: text("recent_work").notNull(), // JSON array
-  techStack: text("tech_stack").notNull(), // JSON array
-  researchAreas: text("research_areas").notNull(), // JSON array
+  recentWork: text("recent_work", { mode: "json" }).$type<string[]>().notNull(),
+  techStack: text("tech_stack", { mode: "json" }).$type<string[]>().notNull(),
+  researchAreas: text("research_areas", { mode: "json" }).$type<string[]>().notNull(),
   website: text("website"),
   logoColor: text("logo_color").notNull(),
   openRoles: integer("open_roles").notNull().default(0),
@@ -65,8 +65,8 @@ export const trends = sqliteTable("trends", {
   category: text("category").notNull(),
   source: text("source").notNull(),
   sourceUrl: text("source_url"),
-  tags: text("tags").notNull(), // JSON array
-  momentum: text("momentum").notNull(), // "rising" | "hot" | "established"
+  tags: text("tags", { mode: "json" }).$type<string[]>().notNull(),
+  momentum: text("momentum").notNull(),
   publishedAt: integer("published_at", { mode: "timestamp" }).notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

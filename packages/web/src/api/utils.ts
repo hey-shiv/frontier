@@ -16,17 +16,4 @@ export const PROVIDER_KEYS: ProviderKeys = {
   semanticScholarKey: loadEnvKey("SEMANTIC_SCHOLAR_API_KEY"),
 };
 
-// ─── Safe JSON parse helper ───────────────────────────────────────────────────
 
-export function safeParseJsonArray(value: unknown, fallback: string[] = []): string[] {
-  if (Array.isArray(value)) return value.map(String);
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed.map(String) : fallback;
-    } catch {
-      return fallback;
-    }
-  }
-  return fallback;
-}

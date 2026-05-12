@@ -17,6 +17,7 @@
     "db:studio": "bun --env-file=../../.env drizzle-kit studio"
   },
   "dependencies": {
+    "@frontier/db": "workspace:*",
     "@frontier/shared": "workspace:*",
     "@libsql/client": "^0.17.3",
     "@radix-ui/react-slot": "^1.2.4",

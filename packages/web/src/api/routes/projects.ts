@@ -1,9 +1,7 @@
 import { Hono } from "hono";
-import { getDb } from "../database/index.js";
-import * as schema from "../database/schema.js";
+import { getDb, schema } from "@frontier/db";
 import { eq, and } from "drizzle-orm";
 import { SaveProjectSchema, IdParamSchema } from "../schemas.js";
-import { safeParseJsonArray } from "../utils.js";
 import type { SavedProject, ApiError } from "@frontier/shared";
 
 export const projectsRouter = new Hono()
@@ -22,21 +20,21 @@ export const projectsRouter = new Hono()
 
     const parsed: SavedProject[] = rows.map((p: any) => ({
       ...p,
-      domains:           safeParseJsonArray(p.domains),
-      interests:         safeParseJsonArray(p.interests),
-      tags:              safeParseJsonArray(p.tags),
-      requiredSkills:    safeParseJsonArray(p.requiredSkills),
-      techStack:         safeParseJsonArray(p.techStack),
-      recommendedModels: safeParseJsonArray(p.recommendedModels),
-      datasets:          safeParseJsonArray(p.datasets),
-      apis:              safeParseJsonArray(p.apis),
-      evaluationMetrics: safeParseJsonArray(p.evaluationMetrics),
-      roadmap:           safeParseJsonArray(p.roadmap),
-      scalingIdeas:      safeParseJsonArray(p.scalingIdeas),
-      futureImprovements:safeParseJsonArray(p.futureImprovements),
-      targetCompanies:   safeParseJsonArray(p.targetCompanies),
-      providerMeta:      JSON.parse(p.providerMeta || "{}"),
-      inputProfile:      JSON.parse(p.inputProfile || "{}"),
+      domains:           p.domains,
+      interests:         p.interests,
+      tags:              p.tags,
+      requiredSkills:    p.requiredSkills,
+      techStack:         p.techStack,
+      recommendedModels: p.recommendedModels,
+      datasets:          p.datasets,
+      apis:              p.apis,
+      evaluationMetrics: p.evaluationMetrics,
+      roadmap:           p.roadmap,
+      scalingIdeas:      p.scalingIdeas,
+      futureImprovements:p.futureImprovements,
+      targetCompanies:   p.targetCompanies,
+      providerMeta:      p.providerMeta,
+      inputProfile:      p.inputProfile,
     } as SavedProject));
 
     return c.json({ projects: parsed }, 200);
@@ -87,9 +85,9 @@ export const projectsRouter = new Hono()
         sessionId,
         title:               data.title,
         pitch:               data.pitch,
-        domains:             JSON.stringify([]), // domains and interests not passed inside SaveProjectSchema?
-        interests:           JSON.stringify([]),
-        tags:                JSON.stringify(data.tags),
+        domains:             [],
+        interests:           [],
+        tags:                data.tags,
         category:            data.category,
         difficulty:          data.difficulty,
         timeEstimate:        data.timeEstimate,
@@ -103,19 +101,19 @@ export const projectsRouter = new Hono()
         whyItMatters:        data.whyItMatters,
         coreInnovation:      data.coreInnovation,
         architecture:        data.architecture,
-        requiredSkills:      JSON.stringify(data.requiredSkills),
-        techStack:           JSON.stringify(data.techStack),
-        recommendedModels:   JSON.stringify(data.recommendedModels),
-        datasets:            JSON.stringify(data.datasets),
-        apis:                JSON.stringify(data.apis),
-        evaluationMetrics:   JSON.stringify(data.evaluationMetrics),
-        roadmap:             JSON.stringify(data.roadmap),
+        requiredSkills:      data.requiredSkills,
+        techStack:           data.techStack,
+        recommendedModels:   data.recommendedModels,
+        datasets:            data.datasets,
+        apis:                data.apis,
+        evaluationMetrics:   data.evaluationMetrics,
+        roadmap:             data.roadmap,
         deployment:          data.deployment,
-        scalingIdeas:        JSON.stringify(data.scalingIdeas),
-        futureImprovements:  JSON.stringify(data.futureImprovements),
-        targetCompanies:     JSON.stringify(data.targetCompanies),
-        providerMeta:        JSON.stringify(data.providerMeta),
-        inputProfile:        JSON.stringify(data.inputProfile),
+        scalingIdeas:        data.scalingIdeas,
+        futureImprovements:  data.futureImprovements,
+        targetCompanies:     data.targetCompanies,
+        providerMeta:        data.providerMeta,
+        inputProfile:        data.inputProfile,
       })
       .returning();
 

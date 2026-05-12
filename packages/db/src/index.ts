@@ -1,4 +1,5 @@
 import * as schema from "./schema.js";
+export { schema };
 
 const isVercel = !!process.env.VERCEL;
 const dbUrl = process.env.DATABASE_URL?.trim();
