@@ -22,6 +22,7 @@
       "name": "@frontier/db",
       "version": "1.0.0",
       "dependencies": {
+        "@frontier/shared": "workspace:*",
         "@libsql/client": "^0.17.3",
         "drizzle-orm": "^0.45.2",
       },

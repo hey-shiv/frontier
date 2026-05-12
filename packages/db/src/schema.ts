@@ -1,4 +1,25 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import type { ProjectPreview, ProjectDetail } from "@frontier/shared";
+
+export const previewCache = sqliteTable("preview_cache", {
+  id: text("id").primaryKey(),
+  data: text("data", { mode: "json" }).$type<ProjectPreview[]>().notNull(),
+  provider: text("provider").notNull(),
+  ts: integer("ts", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const detailCache = sqliteTable("detail_cache", {
+  id: text("id").primaryKey(),
+  data: text("data", { mode: "json" }).$type<ProjectDetail>().notNull(),
+  provider: text("provider").notNull(),
+  ts: integer("ts", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
 
 export const savedProjects = sqliteTable("saved_projects", {
   id: integer("id").primaryKey({ autoIncrement: true }),

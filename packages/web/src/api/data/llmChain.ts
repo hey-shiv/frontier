@@ -12,6 +12,8 @@
  */
 
 import type { GenerateInput, ProjectPreview, ProjectDetail, LLMProvider } from "@frontier/shared";
+import { getDb, schema } from "@frontier/db";
+import { eq } from "drizzle-orm";
 import { callGemini } from "./gemini.js";
 import { callGroq } from "./groq.js";
 import { callOpenRouterForPreviews, callOpenRouterForDetail } from "./openrouter.js";
@@ -116,10 +118,8 @@ function parseDetailObject(raw: string, preview: ProjectPreview): ProjectDetail 
   };
 }
 
-// ─── Preview cache ────────────────────────────────────────────────────────────
+// ─── Cache Keys & TTL ─────────────────────────────────────────────────────────
 
-const previewCache = new Map<string, { data: ProjectPreview[]; provider: LLMProvider; ts: number }>();
-const detailCache  = new Map<string, { data: ProjectDetail; provider: LLMProvider; ts: number }>();
 const PREVIEW_TTL  = 10 * 60 * 1000; // 10 min (seed already busts cache per click)
 const DETAIL_TTL   = 30 * 60 * 1000;
 
@@ -141,6 +141,28 @@ function detailCacheKey(projectId: string, input: GenerateInput) {
 
 // ─── Preview generation ───────────────────────────────────────────────────────
 
+async function savePreviewCache(id: string, data: ProjectPreview[], provider: LLMProvider) {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.delete(schema.previewCache).where(eq(schema.previewCache.id, id));
+    await db.insert(schema.previewCache).values({ id, data, provider, ts: new Date() });
+  } catch (e) {
+    console.warn("[LLMChain] Failed to save preview cache", e);
+  }
+}
+
+async function saveDetailCache(id: string, data: ProjectDetail, provider: LLMProvider) {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.delete(schema.detailCache).where(eq(schema.detailCache.id, id));
+    await db.insert(schema.detailCache).values({ id, data, provider, ts: new Date() });
+  } catch (e) {
+    console.warn("[LLMChain] Failed to save detail cache", e);
+  }
+}
+
 export interface PreviewResult {
   previews: ProjectPreview[];
   provider: LLMProvider;
@@ -152,10 +174,17 @@ export async function generatePreviews(
   keys: ProviderKeys
 ): Promise<PreviewResult> {
   const ckey = previewCacheKey(input);
-  const cached = previewCache.get(ckey);
-  if (cached && Date.now() - cached.ts < PREVIEW_TTL) {
-    console.log("[LLMChain] Preview cache hit");
-    return { previews: cached.data, provider: cached.provider, warnings: [] };
+  const db = await getDb();
+  if (db) {
+    try {
+      const cached = await db.select().from(schema.previewCache).where(eq(schema.previewCache.id, ckey)).limit(1);
+      if (cached.length > 0 && Date.now() - cached[0].ts.getTime() < PREVIEW_TTL) {
+        console.log("[LLMChain] Preview cache hit");
+        return { previews: cached[0].data, provider: cached[0].provider as LLMProvider, warnings: [] };
+      }
+    } catch (e) {
+      console.warn("[LLMChain] Failed to read preview cache", e);
+    }
   }
 
   // Gather enrichment (non-blocking, never throws)
@@ -181,7 +210,7 @@ export async function generatePreviews(
       const raw = await callGemini(PREVIEW_SYSTEM_PROMPT, userPrompt, keys.geminiKey, 1400);
       const previews = parsePreviewArray(raw);
       console.log(`[LLMChain] Gemini success — ${previews.length} previews`);
-      previewCache.set(ckey, { data: previews, provider: "gemini", ts: Date.now() });
+      await savePreviewCache(ckey, previews, "gemini");
       return { previews, provider: "gemini", warnings };
     } catch (e: any) {
       const msg = e.message?.slice(0, 150) ?? "unknown";
@@ -197,7 +226,7 @@ export async function generatePreviews(
       const raw = await callGroq(PREVIEW_SYSTEM_PROMPT, userPrompt, keys.groqKey, 1400);
       const previews = parsePreviewArray(raw);
       console.log(`[LLMChain] Groq success — ${previews.length} previews`);
-      previewCache.set(ckey, { data: previews, provider: "groq", ts: Date.now() });
+      await savePreviewCache(ckey, previews, "groq");
       return { previews, provider: "groq", warnings };
     } catch (e: any) {
       const msg = e.message?.slice(0, 150) ?? "unknown";
@@ -213,7 +242,7 @@ export async function generatePreviews(
       const raw = await callOpenRouterForPreviews(PREVIEW_SYSTEM_PROMPT, userPrompt, keys.openrouterKey);
       const previews = parsePreviewArray(raw);
       console.log(`[LLMChain] OpenRouter success — ${previews.length} previews`);
-      previewCache.set(ckey, { data: previews, provider: "openrouter", ts: Date.now() });
+      await savePreviewCache(ckey, previews, "openrouter");
       return { previews, provider: "openrouter", warnings };
     } catch (e: any) {
       const msg = e.message?.slice(0, 150) ?? "unknown";
@@ -245,10 +274,17 @@ export async function generateDetail(
   keys: ProviderKeys
 ): Promise<DetailResult> {
   const ckey = detailCacheKey(preview.id, input);
-  const cached = detailCache.get(ckey);
-  if (cached && Date.now() - cached.ts < DETAIL_TTL) {
-    console.log(`[LLMChain] Detail cache hit: ${preview.id}`);
-    return { detail: cached.data, provider: cached.provider, warnings: [] };
+  const db = await getDb();
+  if (db) {
+    try {
+      const cached = await db.select().from(schema.detailCache).where(eq(schema.detailCache.id, ckey)).limit(1);
+      if (cached.length > 0 && Date.now() - cached[0].ts.getTime() < DETAIL_TTL) {
+        console.log(`[LLMChain] Detail cache hit: ${preview.id}`);
+        return { detail: cached[0].data, provider: cached[0].provider as LLMProvider, warnings: [] };
+      }
+    } catch (e) {
+      console.warn("[LLMChain] Failed to read detail cache", e);
+    }
   }
 
   const userPrompt = buildDeepUserPrompt(preview, input);
@@ -260,7 +296,7 @@ export async function generateDetail(
       console.log(`[LLMChain] Detail: Gemini for "${preview.title}"`);
       const raw = await callGemini(DEEP_SYSTEM_PROMPT, userPrompt, keys.geminiKey, 2400);
       const detail = parseDetailObject(raw, preview);
-      detailCache.set(ckey, { data: detail, provider: "gemini", ts: Date.now() });
+      await saveDetailCache(ckey, detail, "gemini");
       return { detail, provider: "gemini", warnings };
     } catch (e: any) {
       const msg = e.message?.slice(0, 150) ?? "unknown";
@@ -274,7 +310,7 @@ export async function generateDetail(
       console.log(`[LLMChain] Detail: Groq for "${preview.title}"`);
       const raw = await callGroq(DEEP_SYSTEM_PROMPT, userPrompt, keys.groqKey, 2400);
       const detail = parseDetailObject(raw, preview);
-      detailCache.set(ckey, { data: detail, provider: "groq", ts: Date.now() });
+      await saveDetailCache(ckey, detail, "groq");
       return { detail, provider: "groq", warnings };
     } catch (e: any) {
       const msg = e.message?.slice(0, 150) ?? "unknown";
@@ -288,7 +324,7 @@ export async function generateDetail(
       console.log(`[LLMChain] Detail: OpenRouter for "${preview.title}"`);
       const raw = await callOpenRouterForDetail(DEEP_SYSTEM_PROMPT, userPrompt, keys.openrouterKey);
       const detail = parseDetailObject(raw, preview);
-      detailCache.set(ckey, { data: detail, provider: "openrouter", ts: Date.now() });
+      await saveDetailCache(ckey, detail, "openrouter");
       return { detail, provider: "openrouter", warnings };
     } catch (e: any) {
       const msg = e.message?.slice(0, 150) ?? "unknown";
@@ -302,7 +338,7 @@ export async function generateDetail(
       console.log(`[LLMChain] Detail: OpenRouter (Secondary Key) for "${preview.title}"`);
       const raw = await callOpenRouterForDetail(DEEP_SYSTEM_PROMPT, userPrompt, keys.openrouterKey2);
       const detail = parseDetailObject(raw, preview);
-      detailCache.set(ckey, { data: detail, provider: "openrouter", ts: Date.now() });
+      await saveDetailCache(ckey, detail, "openrouter");
       return { detail, provider: "openrouter", warnings };
     } catch (e: any) {
       const msg = e.message?.slice(0, 150) ?? "unknown";
