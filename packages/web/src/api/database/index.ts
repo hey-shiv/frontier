@@ -54,7 +54,13 @@ function shouldUseHttpDriver(url: string): boolean {
 }
 
 function getLocalDatabaseUrl(): string {
-  const cwd = typeof process.cwd === "function" ? process.cwd() : ".";
+  let cwd = ".";
+  if (typeof process !== "undefined" && "cwd" in process) {
+    const p = process as unknown as { cwd?: () => string };
+    if (typeof p.cwd === "function") {
+      cwd = p.cwd();
+    }
+  }
   return `file:${cwd.replace(/\\/g, "/")}/frontier-local.db`;
 }
 
