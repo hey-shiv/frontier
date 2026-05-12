@@ -11,7 +11,7 @@
  * Exactly one active LLM request per generate click.
  */
 
-import type { GenerateInput, ProjectPreview, ProjectDetail, LLMProvider } from "../../shared/types.js";
+import type { GenerateInput, ProjectPreview, ProjectDetail, LLMProvider } from "@frontier/shared";
 import { callGemini } from "./gemini.js";
 import { callGroq } from "./groq.js";
 import { callOpenRouterForPreviews, callOpenRouterForDetail } from "./openrouter.js";

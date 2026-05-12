@@ -10,7 +10,7 @@ export type {
   ProjectDetail,
   ProjectRecommendation,
   GenerateInput,
-} from "../../shared/types.js";
+} from "@frontier/shared";
 
 // ─── Free models (sequential, not raced) ─────────────────────────────────────
 

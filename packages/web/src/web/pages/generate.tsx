@@ -7,7 +7,7 @@ import { DetailContent } from "../components/generate/detail-content";
 import { SkeletonCard } from "../components/ui/skeleton-card";
 import { getSessionId } from "../lib/session";
 import { useRevealSelf } from "../hooks/use-scroll-reveal";
-import type { ProjectPreview, ProjectDetail, GenerateInput } from "../../shared/types";
+import type { ProjectPreview, ProjectDetail, GenerateInput } from "@frontier/shared";
 
 // ─── Loading Screen ───────────────────────────────────────────────────────────
 

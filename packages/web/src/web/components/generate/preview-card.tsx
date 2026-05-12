@@ -1,5 +1,5 @@
 import { ScoreRing } from "../ui/score-ring";
-import type { ProjectPreview } from "../../../shared/types";
+import type { ProjectPreview } from "@frontier/shared";
 
 interface Props {
   preview: ProjectPreview;

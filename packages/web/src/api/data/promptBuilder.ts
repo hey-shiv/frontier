@@ -2,7 +2,7 @@
  * Shared prompt builder — used by all LLM providers (Gemini, Groq, OpenRouter).
  * Single source of truth for the generation prompt so all providers get identical instructions.
  */
-import type { GenerateInput } from "../../shared/types.js";
+import type { GenerateInput } from "@frontier/shared";
 import { formatEnrichmentForPrompt } from "./enrichment.js";
 import type { EnrichmentContext } from "./enrichment.js";
 

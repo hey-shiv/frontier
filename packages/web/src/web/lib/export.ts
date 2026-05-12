@@ -1,4 +1,4 @@
-import type { SavedProject, ProjectDetail } from "../../../shared/types";
+import type { SavedProject, ProjectDetail } from "@frontier/shared";
 
 export function exportToMarkdown(project: SavedProject | ProjectDetail): string {
   const isSaved = "createdAt" in project;

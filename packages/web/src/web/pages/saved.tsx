@@ -3,7 +3,7 @@ import { getSessionId } from "../lib/session";
 import { SectionLabel } from "../components/section-label";
 import { ScorePill } from "../components/ui/score-ring";
 import { useScrollReveal } from "../hooks/use-scroll-reveal";
-import type { SavedProject } from "../../shared/types";
+import type { SavedProject } from "@frontier/shared";
 
 function EmptyState() {
   return (

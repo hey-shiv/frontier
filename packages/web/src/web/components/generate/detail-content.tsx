@@ -1,4 +1,4 @@
-import type { ProjectDetail } from "../../../shared/types";
+import type { ProjectDetail } from "@frontier/shared";
 
 // ─── Internal components ──────────────────────────────────────────────────────
 

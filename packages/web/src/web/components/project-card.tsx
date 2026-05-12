@@ -6,7 +6,7 @@ import {
   FlaskConical, BarChart3, BookOpen, Sparkles,
 } from "lucide-react";
 import { ScorePill } from "./ui/score-pill";
-import type { ProjectDetail } from "../../shared/types";
+import type { ProjectDetail } from "@frontier/shared";
 
 interface Props {
   project: ProjectDetail;

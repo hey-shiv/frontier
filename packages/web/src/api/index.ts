@@ -18,7 +18,7 @@ import type {
   GenerateDetailResponse,
   SavedProject,
   ApiError,
-} from "../shared/types.js";
+} from "@frontier/shared";
 
 // ─── Env helpers ──────────────────────────────────────────────────────────────
 

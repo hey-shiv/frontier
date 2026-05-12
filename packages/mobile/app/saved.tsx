@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
-import type { SavedProject } from "../../web/src/shared/types";
+import type { SavedProject } from "@frontier/shared";
 import { api } from "../lib/api";
 
 const SESSION_ID = "mobile-session-v1"; // Simple static session ID for mobile demo

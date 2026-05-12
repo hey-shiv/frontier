@@ -6,6 +6,7 @@
     ".": "./src/api/index.ts"
   },
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
     "dev": "vite",
     "lint": "eslint .",
@@ -16,6 +17,7 @@
     "db:studio": "bun --env-file=../../.env drizzle-kit studio"
   },
   "dependencies": {
+    "@frontier/shared": "workspace:*",
     "@libsql/client": "^0.17.3",
     "@radix-ui/react-slot": "^1.2.4",
     "@runablehq/website-runtime": "^0.10.0",

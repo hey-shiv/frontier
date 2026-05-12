@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../lib/api";
-import type { GenerateInput } from "../../web/src/shared/types";
+import type { GenerateInput } from "@frontier/shared";
 
 const SESSION_ID = "mobile-session-v1";
 

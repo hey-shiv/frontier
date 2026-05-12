@@ -36,6 +36,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@expo/vector-icons": "^14.0.0",
+        "@frontier/shared": "workspace:*",
         "@frontier/web": "workspace:*",
         "@tanstack/react-query": "^5.96.1",
         "expo": "~54.0.33",
@@ -56,9 +57,14 @@
         "typescript": "~5.9.2",
       },
     },
+    "packages/shared": {
+      "name": "@frontier/shared",
+      "version": "1.0.0",
+    },
     "packages/web": {
       "name": "@frontier/web",
       "dependencies": {
+        "@frontier/shared": "workspace:*",
         "@libsql/client": "^0.17.3",
         "@radix-ui/react-slot": "^1.2.4",
         "@runablehq/website-runtime": "^0.10.0",
@@ -536,6 +542,8 @@
     "@frontier/desktop": ["@frontier/desktop@workspace:packages/desktop"],
 
     "@frontier/mobile": ["@frontier/mobile@workspace:packages/mobile"],
+
+    "@frontier/shared": ["@frontier/shared@workspace:packages/shared"],
 
     "@frontier/web": ["@frontier/web@workspace:packages/web"],
 

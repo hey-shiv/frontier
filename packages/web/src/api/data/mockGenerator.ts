@@ -5,12 +5,12 @@
  * - NEVER uses a static DEFAULT_PROJECTS list
  * - Synthesizes one unique project per domain × interest × company combo
  * - Always returns exactly 4 projects
- * - aiGenerated is ALWAYS false — caller must mark provider as "local-fallback"
+ * aiGenerated is ALWAYS false — caller must mark provider as "local-fallback"
  */
 
-import type { ProjectPreview, GenerateInput } from "../../shared/types.js";
+ import type { ProjectPreview, GenerateInput } from "@frontier/shared";
 
-// ─── Template bank (high-quality domain×interest pairs) ──────────────────────
+ // ─── Template bank (high-quality domain×interest pairs) ──────────────────────
 // Used as a boost when the user's selection matches. Extras are generated dynamically.
 
 const TEMPLATE_BANK: Record<string, Partial<ProjectPreview>> = {

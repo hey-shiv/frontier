@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { exportToMarkdown } from "../web/lib/export";
-import type { SavedProject } from "../shared/types";
+import type { SavedProject } from "@frontier/shared";
 
 describe("Markdown Export", () => {
   test("formats a project correctly into Markdown", () => {
